@@ -435,7 +435,7 @@ function formatarData(dataISO) {
 /* =========================================================
    BLOQUEIO DE INSPEÇÃO E BOTÃO DIREITO
    ========================================================= */
-document.addEventListener("contextmenu", (e) => e.preventDefault());
+/*document.addEventListener("contextmenu", (e) => e.preventDefault());
 
 document.addEventListener("keydown", (e) => {
   if (e.keyCode === 123 || e.key === "F12") e.preventDefault();
@@ -448,4 +448,4 @@ setInterval(() => {
   debugger;
   const depois = performance.now();
   if (depois - antes > 100) window.location.reload();
-}, 1000);
+}, 1000);*/
