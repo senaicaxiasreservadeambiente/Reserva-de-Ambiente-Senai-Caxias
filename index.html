@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Reserva de Ambientes - SENAI</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Supabase JS Client via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <!-- TELA DE AUTENTICAÇÃO -->
+  <div id="auth-container" class="auth-container">
+    <div class="auth-card">
+      <div class="logo">
+        <h1 style="color: #0056b3;">SENAI</h1>
+        <p style="color: #555; font-weight: bold;">Reserva de Ambientes de Ensino</p>
+      </div>
+      
+      <!-- LOGIN -->
+      <form id="form-login" onsubmit="handleLogin(event)">
+        <h2 class="text-center">Acesso ao Sistema</h2>
+        <input type="email" id="login-email" placeholder="E-mail Corporativo" required>
+        <input type="password" id="login-senha" placeholder="Sua Senha" required>
+        <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+        <p class="auth-toggle">Novo funcionário? <a href="javascript:void(0)" onclick="toggleAuth('cadastro')">Cadastre-se</a></p>
+      </form>
+
+      <!-- CADASTRO -->
+      <form id="form-cadastro" class="hidden" onsubmit="handleCadastro(event)">
+        <h2 class="text-center">Cadastro de Funcionário</h2>
+        <input type="text" id="cad-nome" placeholder="Nome Completo" required>
+        <input type="email" id="cad-email" placeholder="E-mail Corporativo" required>
+        <input type="text" id="cad-matricula" placeholder="Matrícula" required>
+        
+        <select id="cad-segmento" required>
+          <option value="">Selecione seu Segmento...</option>
+          <option value="Pedagógico">Pedagógico</option>
+          <option value="TI">TI - Tecnologia da Informação</option>
+          <option value="Elétrica">Elétrica</option>
+          <option value="Automação">Automação</option>
+          <option value="Mecânica">Mecânica</option>
+          <option value="Petroquímica">Petroquímica</option>
+          <option value="FabLab">FabLab</option>
+          <option value="Confecção">Confecção</option>
+          <option value="Energias Renováveis">Energias Renováveis</option>
+          <option value="Logística / Gestão">Logística / Gestão</option>
+          <option value="Projetos">Projetos</option>
+          <option value="Diversos">Diversos / Serviços</option>
+        </select>
+
+        <select id="cad-cargo" required>
+          <option value="">Selecione seu Cargo...</option>
+          <option value="Tecnico de Educacao">Técnico de Educação</option>
+          <option value="Coordenador">Coordenador</option>
+          <option value="Instrutor">Instrutor</option>
+          <option value="Inspetor">Inspetor</option>
+          <option value="Estagiario">Estagiário</option>
+        </select>
+
+        <input type="password" id="cad-senha" placeholder="Senha (mín. 6 caracteres)" minlength="6" required>
+        <button type="submit" class="btn btn-success btn-block">Cadastrar</button>
+        <p class="auth-toggle">Já tem conta? <a href="javascript:void(0)" onclick="toggleAuth('login')">Fazer Login</a></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- APLICAÇÃO PRINCIPAL -->
+  <div id="app-container" class="app-container hidden">
+    
+    <!-- CABEÇALHO -->
+    <header class="navbar">
+      <div class="nav-brand">SENAI - Reserva de Ambientes</div>
+      <div class="nav-user">
+        <span id="user-display">Usuário: ...</span>
+        <span id="badge-perfil" class="badge">...</span>
+        <button onclick="handleLogout()" class="btn btn-logout">Sair</button>
+      </div>
+    </header>
+
+    <!-- NAVEGAÇÃO POR ABAS -->
+    <nav class="sub-nav">
+      <button class="nav-btn active" onclick="trocarAba('reservas')">📅 Quadro de Reservas</button>
+      <button id="btn-tab-solicitar" class="nav-btn hidden" onclick="trocarAba('solicitar')">➕ Solicitar Reserva</button>
+      <button id="btn-tab-validar" class="nav-btn hidden" onclick="trocarAba('validar')">⚙️ Administrar Reservas <span id="badge-notif" class="notif-count hidden">0</span></button>
+      <button id="btn-tab-ambientes" class="nav-btn hidden" onclick="trocarAba('ambientes')">🏫 Gerenciar Ambientes</button>
+      <button id="btn-tab-funcionarios" class="nav-btn hidden" onclick="trocarAba('funcionarios')">👥 Gerenciar Funcionários</button>
+    </nav>
+
+    <main class="main-content">
+
+      <!-- ABA 1: VISUALIZAÇÃO GERAL E FILTRADA DE RESERVAS -->
+      <section id="aba-reservas" class="tab-content">
+        <div class="card">
+          <div class="header-filters">
+            <h2>📅 Consultar Reservas de Ambientes</h2>
+            <div class="filters-row">
+              <div class="filter-item">
+                <label for="filtro-segmento">Filtrar por Segmento:</label>
+                <select id="filtro-segmento" onchange="carregarReservas()">
+                  <option value="todos">Todos os Segmentos</option>
+                  <option value="Pedagógico">Pedagógico</option>
+                  <option value="TI">TI</option>
+                  <option value="Elétrica">Elétrica</option>
+                  <option value="Automação">Automação</option>
+                  <option value="Mecânica">Mecânica</option>
+                  <option value="Petroquímica">Petroquímica</option>
+                  <option value="FabLab">FabLab</option>
+                  <option value="Confecção">Confecção</option>
+                  <option value="Energias Renováveis">Energias Renováveis</option>
+                  <option value="Logística / Gestão">Logística / Gestão</option>
+                  <option value="Projetos">Projetos</option>
+                  <option value="Diversos">Diversos</option>
+                </select>
+              </div>
+              <div class="filter-item">
+                <label for="filtro-data-reserva">Data:</label>
+                <input type="date" id="filtro-data-reserva" onchange="carregarReservas()">
+              </div>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Ambiente / Segmento</th>
+                  <th>Período (Início - Fim)</th>
+                  <th>Turno e Horário</th>
+                  <th>Instrutor / Segmento</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-reservas-corpo">
+                <tr><td colspan="6" class="text-center">Carregando reservas...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ABA 2: SOLICITAÇÃO DE RESERVA (INSTRUTOR / TÉCNICO / COORDENADOR) -->
+      <section id="aba-solicitar" class="tab-content hidden">
+        <div class="card">
+          <h2>📝 Solicitar Nova Reserva</h2>
+          <form id="form-solicitar-reserva" onsubmit="solicitarReserva(event)">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="res-ambiente">Ambiente Desejado:</label>
+                <select id="res-ambiente" required>
+                  <option value="">Carregando ambientes...</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="res-turno">Turno:</label>
+                <select id="res-turno" required>
+                  <option value="Manhã">Manhã</option>
+                  <option value="Tarde">Tarde</option>
+                  <option value="Noite">Noite</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="res-data-inicio">Data Início:</label>
+                <input type="date" id="res-data-inicio" required>
+              </div>
+
+              <div class="form-group">
+                <label for="res-data-fim">Data Fim:</label>
+                <input type="date" id="res-data-fim" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="res-horario">Horário (ex: 07:30 - 11:30):</label>
+              <input type="text" id="res-horario" placeholder="Digite o horário de utilização" required>
+            </div>
+
+            <div class="form-group">
+              <label for="res-obs">Observações / Motivo da Aula:</label>
+              <textarea id="res-obs" rows="3" placeholder="Informações adicionais para a equipe pedagógica..."></textarea>
+            </div>
+
+            <button type="submit" id="btn-enviar-reserva" class="btn btn-success btn-block">Enviar Solicitação</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- ABA 3: GESTÃO E VALIDAÇÃO DE RESERVAS (TÉCNICO DE EDUCAÇÃO E COORDENADOR) -->
+      <section id="aba-validar" class="tab-content hidden">
+        <div class="card">
+          <h2>⚙️ Gerenciamento e Validação de Reservas Pendentes</h2>
+          <p class="hint mb-1">Como Técnico de Educação ou Coordenador, você pode aprovar, recusar ou alterar as solicitações dos instrutores.</p>
+          
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Solicitante</th>
+                  <th>Ambiente</th>
+                  <th>Data/Turno</th>
+                  <th>Status</th>
+                  <th class="text-center">Ações de Gestão</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-validacao-corpo">
+                <tr><td colspan="6" class="text-center">Carregando solicitações...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ABA 4: GESTÃO DE AMBIENTES (CRUD - TÉCNICO E COORDENADOR) -->
+      <section id="aba-ambientes" class="tab-content hidden">
+        <div class="card">
+          <h2 id="titulo-form-ambiente">🏫 Cadastrar / Editar Ambiente</h2>
+          <form id="form-ambiente" onsubmit="salvarAmbiente(event)">
+            <input type="hidden" id="amb-id">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="amb-nome">Nome do Ambiente:</label>
+                <input type="text" id="amb-nome" placeholder="Ex: Laboratório TI 6" required>
+              </div>
+
+              <div class="form-group">
+                <label for="amb-tipo">Tipo do Ambiente:</label>
+                <select id="amb-tipo" required>
+                  <option value="Sala de Aula">Sala de Aula</option>
+                  <option value="Laboratório">Laboratório</option>
+                  <option value="Oficina">Oficina</option>
+                  <option value="Auditório">Auditório</option>
+                  <option value="Biblioteca">Biblioteca</option>
+                  <option value="Sala de Reunião">Sala de Reunião</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="amb-segmento">Segmento:</label>
+                <select id="amb-segmento" required>
+                  <option value="Pedagógico">Pedagógico</option>
+                  <option value="TI">TI</option>
+                  <option value="Elétrica">Elétrica</option>
+                  <option value="Automação">Automação</option>
+                  <option value="Mecânica">Mecânica</option>
+                  <option value="Petroquímica">Petroquímica</option>
+                  <option value="FabLab">FabLab</option>
+                  <option value="Confecção">Confecção</option>
+                  <option value="Energias Renováveis">Energias Renováveis</option>
+                  <option value="Logística / Gestão">Logística / Gestão</option>
+                  <option value="Projetos">Projetos</option>
+                  <option value="Diversos">Diversos</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="amb-capacidade">Capacidade (Lugares):</label>
+                <input type="number" id="amb-capacidade" min="0" placeholder="Ex: 30" required>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+              <button type="submit" id="btn-salvar-ambiente" class="btn btn-success">Salvar Ambiente</button>
+              <button type="button" id="btn-cancelar-ambiente" class="btn btn-secondary hidden" onclick="limparFormAmbiente()">Cancelar</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <h3>📋 Ambientes Cadastrados</h3>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Tipo</th>
+                  <th>Segmento</th>
+                  <th>Capacidade</th>
+                  <th class="text-center">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-ambientes-corpo">
+                <tr><td colspan="5" class="text-center">Carregando ambientes...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ABA 5: GESTÃO DE FUNCIONÁRIOS (CRUD - TÉCNICO E COORDENADOR) -->
+      <section id="aba-funcionarios" class="tab-content hidden">
+        <div class="card">
+          <h2>👥 Quadro de Funcionários Cadastrados</h2>
+          <p class="hint mb-1">Como Técnico de Educação ou Coordenador você pode visualizar, cadastrar novos instrutores/equipe e gerenciar os acessos.</p>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>E-mail</th>
+                  <th>Matrícula</th>
+                  <th>Segmento</th>
+                  <th>Cargo</th>
+                  <th class="text-center">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-funcionarios-corpo">
+                <tr><td colspan="6" class="text-center">Carregando funcionários...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
