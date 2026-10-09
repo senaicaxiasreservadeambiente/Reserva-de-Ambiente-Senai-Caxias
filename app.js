@@ -51,7 +51,14 @@ async function handleCadastro(e) {
   const cargo = document.getElementById("cad-cargo").value;
   const senha = document.getElementById("cad-senha").value;
 
-  const { data, error } = await supabaseClient.auth.signUp({ email, password: senha });
+  // Cadastra no Supabase Auth salvando também nos metadados
+  const { data, error } = await supabaseClient.auth.signUp({ 
+    email, 
+    password: senha,
+    options: {
+      data: { nome, matricula, segmento, cargo }
+    }
+  });
 
   if (error) {
     alert("Erro no cadastro: " + error.message);
@@ -64,29 +71,12 @@ async function handleCadastro(e) {
     ]);
 
     if (perfilError) {
-      alert("Erro ao salvar perfil: " + perfilError.message);
-      return;
+      console.error("Erro ao salvar tabela perfis:", perfilError);
     }
 
-    alert(`Funcionário cadastrado com sucesso como ${cargo.toUpperCase()}! Faça login.`);
+    alert(`Funcionário cadastrado com sucesso! Faça login para continuar.`);
     toggleAuth("login");
   }
-}
-
-// LOGIN
-async function handleLogin(e) {
-  e.preventDefault();
-  const email = document.getElementById("login-email").value.trim();
-  const senha = document.getElementById("login-senha").value;
-
-  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: senha });
-
-  if (error) {
-    alert("Erro ao acessar: Credenciais inválidas.");
-    return;
-  }
-  usuarioLogado = data.user;
-  await carregarPerfilEIniciar();
 }
 
 // CARREGA PERFIL E AJUSTA INTERFACE DE ACORDO COM O CARGO
@@ -95,12 +85,18 @@ async function carregarPerfilEIniciar() {
     .from("perfis")
     .select("*")
     .eq("id", usuarioLogado.id)
-    .single();
+    .maybeSingle();
 
   if (data) {
     perfilUsuario = data;
   } else {
-    perfilUsuario = { nome: usuarioLogado.email, cargo: "Instrutor", segmento: "TI" };
+    // Caso a tabela falhe, recupera os dados salvos nos metadados da conta
+    const meta = usuarioLogado.user_metadata || {};
+    perfilUsuario = {
+      nome: meta.nome || usuarioLogado.email,
+      cargo: meta.cargo || "Instrutor",
+      segmento: meta.segmento || "Geral"
+    };
   }
 
   document.getElementById("auth-container").classList.add("hidden");
@@ -112,7 +108,11 @@ async function carregarPerfilEIniciar() {
 
   // AJUSTAR VISIBILIDADE DAS ABAS COM BASE NAS PERMISSÕES DO CARGO
   const cargo = perfilUsuario.cargo;
-  const eTecnicoOuCoord = (cargo === "Tecnico de Educacao" || cargo === "Coordenador");
+  const eTecnicoOuCoord = (
+    cargo === "Tecnico de Educacao" || 
+    cargo === "Técnico de Educação" || 
+    cargo === "Coordenador"
+  );
 
   if (cargo === "Instrutor" || eTecnicoOuCoord) {
     document.getElementById("btn-tab-solicitar").classList.remove("hidden");
