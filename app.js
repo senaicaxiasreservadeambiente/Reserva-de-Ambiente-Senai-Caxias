@@ -1,7 +1,7 @@
 // ============================================================================
 // CONFIGURAÇÃO SEGURA DO SUPABASE
 // ============================================================================
-:
+
 const SUPABASE_URL = 'https://kpvearnxbnrazhkiyqeo.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_LGW8XoafLGgLQxnRYiXRdg_a3chpGZW';
 
