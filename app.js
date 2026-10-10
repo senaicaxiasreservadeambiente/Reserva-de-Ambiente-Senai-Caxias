@@ -15,9 +15,9 @@ let listaReservas = [];
 
 // INICIALIZAÇÃO DA APLICAÇÃO
 document.addEventListener("DOMContentLoaded", async () => {
-  const hoje = new Date().toISOString().split("T")[0];
+  // Limpa o filtro inicial de data para exibir todas as reservas (passadas, presentes e futuras)
   const filtroData = document.getElementById("filtro-data-reserva");
-  if (filtroData) filtroData.value = hoje;
+  if (filtroData) filtroData.value = "";
 
   const { data: { session } } = await supabaseClient.auth.getSession();
   if (session) {
@@ -222,21 +222,27 @@ async function carregarAmbientes() {
    MÓDULO DE RESERVAS (CONSULTA, SOLICITAÇÃO E VALIDAÇÃO)
    ========================================================= */
 async function carregarReservas() {
-  const segmento = document.getElementById("filtro-segmento").value;
-  const dataFiltro = document.getElementById("filtro-data-reserva").value;
+  const segmentoEl = document.getElementById("filtro-segmento");
+  const dataFiltroEl = document.getElementById("filtro-data-reserva");
+
+  const segmento = segmentoEl ? segmentoEl.value : "todos";
+  const dataFiltro = dataFiltroEl ? dataFiltroEl.value : "";
 
   let query = supabaseClient.from("reservas").select("*");
 
-  if (segmento !== "todos") {
+  if (segmento && segmento !== "todos") {
     query = query.or(`segmento_ambiente.eq.${segmento},segmento_instrutor.eq.${segmento}`);
   }
 
+  // Aplica o filtro de data apenas se o usuário tiver digitado/selecionado uma data
   if (dataFiltro) {
     query = query.lte("data_inicio", dataFiltro).gte("data_fim", dataFiltro);
   }
 
   const { data, error } = await query.order("criado_em", { ascending: false });
   const tabelaCorpo = document.getElementById("tabela-reservas-corpo");
+  if (!tabelaCorpo) return;
+
   tabelaCorpo.innerHTML = "";
 
   if (error || !data || data.length === 0) {
@@ -318,6 +324,8 @@ async function carregarSolicitacoesPendentes() {
     .order("criado_em", { ascending: false });
 
   const tabelaCorpo = document.getElementById("tabela-validacao-corpo");
+  if (!tabelaCorpo) return;
+
   tabelaCorpo.innerHTML = "";
 
   if (error || !data || data.length === 0) {
@@ -360,6 +368,8 @@ async function alterarStatusReserva(id, novoStatus) {
    ========================================================= */
 function carregarTabelaAmbientes() {
   const tabelaCorpo = document.getElementById("tabela-ambientes-corpo");
+  if (!tabelaCorpo) return;
+
   tabelaCorpo.innerHTML = "";
 
   listaAmbientes.forEach(a => {
@@ -387,7 +397,7 @@ async function salvarAmbiente(e) {
   const capacidade = parseInt(document.getElementById("amb-capacidade").value);
 
   if (id) {
-    await supabaseClient.from("ambientes").update({ nome, tipo, segmento, capacidade }).eq("id", id);
+    await supabaseClient.from("ambientes").update({ nome, tipo, segmento, capacity: capacidade }).eq("id", id);
   } else {
     await supabaseClient.from("ambientes").insert([{ nome, tipo, segmento, capacidade }]);
   }
@@ -432,6 +442,8 @@ async function excluirAmbiente(id) {
 async function carregarTabelaFuncionarios() {
   const { data, error } = await supabaseClient.from("perfis").select("*").order("nome");
   const tabelaCorpo = document.getElementById("tabela-funcionarios-corpo");
+  if (!tabelaCorpo) return;
+
   tabelaCorpo.innerHTML = "";
 
   if (error || !data) return;
