@@ -79,6 +79,31 @@ async function handleCadastro(e) {
   }
 }
 
+// LOGIN DE FUNCIONÁRIO (COM LIMPEZA DE SESSÃO ANTERIOR)
+async function handleLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById("login-email").value.trim();
+  const senha = document.getElementById("login-senha").value;
+
+  try {
+    // Garante o encerramento de qualquer sessão pendente no navegador antes de autenticar
+    await supabaseClient.auth.signOut();
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: senha });
+
+    if (error) {
+      alert("Erro ao acessar: " + error.message);
+      return;
+    }
+
+    usuarioLogado = data.user;
+    await carregarPerfilEIniciar();
+  } catch (err) {
+    console.error("Erro no login:", err);
+    alert("Erro inesperado ao realizar login.");
+  }
+}
+
 // CARREGA PERFIL E AJUSTA INTERFACE DE ACORDO COM O CARGO
 async function carregarPerfilEIniciar() {
   const { data, error } = await supabaseClient
@@ -106,7 +131,13 @@ async function carregarPerfilEIniciar() {
   const badge = document.getElementById("badge-perfil");
   badge.innerText = perfilUsuario.cargo;
 
-  // AJUSTAR VISIBILIDADE DAS ABAS COM BASE NAS PERMISSÕES DO CARGO
+  // 1. Reset de segurança: esconde todas as abas antes de checar as permissões do novo usuário
+  document.getElementById("btn-tab-solicitar")?.classList.add("hidden");
+  document.getElementById("btn-tab-validar")?.classList.add("hidden");
+  document.getElementById("btn-tab-ambientes")?.classList.add("hidden");
+  document.getElementById("btn-tab-funcionarios")?.classList.add("hidden");
+
+  // 2. AJUSTAR VISIBILIDADE DAS ABAS COM BASE NAS PERMISSÕES DO CARGO
   const cargo = perfilUsuario.cargo;
   const eTecnicoOuCoord = (
     cargo === "Tecnico de Educacao" || 
@@ -115,22 +146,24 @@ async function carregarPerfilEIniciar() {
   );
 
   if (cargo === "Instrutor" || eTecnicoOuCoord) {
-    document.getElementById("btn-tab-solicitar").classList.remove("hidden");
+    document.getElementById("btn-tab-solicitar")?.classList.remove("hidden");
   }
 
   if (eTecnicoOuCoord) {
-    document.getElementById("btn-tab-validar").classList.remove("hidden");
-    document.getElementById("btn-tab-ambientes").classList.remove("hidden");
-    document.getElementById("btn-tab-funcionarios").classList.remove("hidden");
+    document.getElementById("btn-tab-validar")?.classList.remove("hidden");
+    document.getElementById("btn-tab-ambientes")?.classList.remove("hidden");
+    document.getElementById("btn-tab-funcionarios")?.classList.remove("hidden");
   }
 
   await carregarAmbientes();
   await carregarReservas();
 }
 
-// LOGOUT
+// LOGOUT (COM LIMPEZA COMPLETA DE CACHE DE SESSÃO)
 async function handleLogout() {
   await supabaseClient.auth.signOut();
+  localStorage.clear();
+  sessionStorage.clear();
   window.location.reload();
 }
 
