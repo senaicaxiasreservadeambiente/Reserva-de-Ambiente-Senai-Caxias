@@ -231,7 +231,7 @@ function trocarAba(aba) {
 }
 
 /* =========================================================
-   PAINEL DO INSPETOR (GRADE DE AMBIENTES EM TEMPO REAL)
+   PAINEL DO INSPETOR (GRADE DE AMBIENTES ORGANIZADA POR SEGMENTOS)
    ========================================================= */
 async function carregarPainelInspetor() {
   const container = document.getElementById("grid-ambientes-inspetor");
@@ -242,8 +242,10 @@ async function carregarPainelInspetor() {
 
   if (!dataFiltro) return;
 
+  container.innerHTML = '<p class="text-center">Atualizando grade de ambientes...</p>';
+
   // 1. Busca todos os ambientes cadastrados
-  const { data: ambientes, error: errAmb } = await supabaseClient.from("ambientes").select("*").order("nome");
+  const { data: ambientes, error: errAmb } = await supabaseClient.from("ambientes").select("*");
   if (errAmb || !ambientes) {
     container.innerHTML = '<p class="text-center">Erro ao carregar lista de ambientes.</p>';
     return;
@@ -272,35 +274,89 @@ async function carregarPainelInspetor() {
 
   container.innerHTML = "";
 
+  // 4. SEPARAÇÃO E ORDENAÇÃO DOS AMBIENTES
+  const salasDeAula = [];
+  const porSegmento = {};
+
   ambientes.forEach(amb => {
-    let responsavel = null;
-    let observacao = "";
-    let isOcupado = false;
-
-    if (mapaOcupacoesInspetor[amb.id]) {
-      responsavel = mapaOcupacoesInspetor[amb.id].responsavel_nome;
-      observacao = mapaOcupacoesInspetor[amb.id].observacao || "";
-      isOcupado = true;
-    } else if (reservas) {
-      const res = reservas.find(r => r.ambiente_id === amb.id);
-      if (res) {
-        responsavel = `Instrutor ${res.nome_instrutor}`;
-        isOcupado = true;
-      }
+    const eSala = amb.tipo === "Sala de Aula" || amb.nome.toLowerCase().includes("sala");
+    if (eSala) {
+      salasDeAula.push(amb);
+    } else {
+      const seg = amb.segmento || "Diversos";
+      if (!porSegmento[seg]) porSegmento[seg] = [];
+      porSegmento[seg].push(amb);
     }
+  });
 
-    const card = document.createElement("div");
-    card.className = `card-ambiente-box ${isOcupado ? 'ocupado' : 'livre'}`;
-    card.onclick = () => abrirModalOcupacao(amb.id, amb.nome, responsavel, observacao);
+  // Ordena as Salas de Aula numericamente (ex: Sala 1, Sala 2 ... Sala 15)
+  salasDeAula.sort((a, b) => {
+    const numA = parseInt((a.nome.match(/\d+/) || [999])[0], 10);
+    const numB = parseInt((b.nome.match(/\d+/) || [999])[0], 10);
+    if (numA !== numB) return numA - numB;
+    return a.nome.localeCompare(b.nome);
+  });
 
-    card.innerHTML = `
-      <div class="card-ambiente-nome">${amb.nome}</div>
-      <div class="card-ambiente-user">
-        ${isOcupado ? `👤 ${responsavel}` : 'DISPONÍVEL'}
-      </div>
-    `;
+  // Função interna para renderizar o bloco de cada segmento
+  const renderizarBlocoSegmento = (titulo, lista) => {
+    if (!lista || lista.length === 0) return;
 
-    container.appendChild(card);
+    const bloco = document.createElement("div");
+    bloco.className = "segmento-bloco";
+
+    const header = document.createElement("div");
+    header.className = "segmento-titulo";
+    header.innerText = titulo;
+    bloco.appendChild(header);
+
+    const grid = document.createElement("div");
+    grid.className = "grid-ambientes";
+
+    lista.forEach(amb => {
+      let responsavel = null;
+      let observacao = "";
+      let isOcupado = false;
+
+      if (mapaOcupacoesInspetor[amb.id]) {
+        responsavel = mapaOcupacoesInspetor[amb.id].responsavel_nome;
+        observacao = mapaOcupacoesInspetor[amb.id].observacao || "";
+        isOcupado = true;
+      } else if (reservas) {
+        const res = reservas.find(r => r.ambiente_id === amb.id);
+        if (res) {
+          responsavel = `Instrutor ${res.nome_instrutor}`;
+          isOcupado = true;
+        }
+      }
+
+      const card = document.createElement("div");
+      card.className = `card-ambiente-box ${isOcupado ? 'ocupado' : 'livre'}`;
+      card.onclick = () => abrirModalOcupacao(amb.id, amb.nome, responsavel, observacao);
+
+      card.innerHTML = `
+        <div class="card-ambiente-nome">${amb.nome}</div>
+        <div class="card-ambiente-user">
+          ${isOcupado ? `👤 ${responsavel}` : 'DISPONÍVEL'}
+        </div>
+      `;
+
+      grid.appendChild(card);
+    });
+
+    bloco.appendChild(grid);
+    container.appendChild(bloco);
+  };
+
+  // 1º Renderiza o bloco de SALAS DE AULA
+  renderizarBlocoSegmento("🏫 SALAS DE AULA", salasDeAula);
+
+  // 2º Renderiza os demais SEGMENTOS em Ordem Alfabética
+  const segmentosOrdenados = Object.keys(porSegmento).sort((a, b) => a.localeCompare(b));
+
+  segmentosOrdenados.forEach(seg => {
+    // Ordena os ambientes em ordem alfabética dentro do próprio segmento
+    porSegmento[seg].sort((a, b) => a.nome.localeCompare(b.nome));
+    renderizarBlocoSegmento(`🔬 SEGMENTO: ${seg.toUpperCase()}`, porSegmento[seg]);
   });
 }
 
@@ -386,7 +442,7 @@ async function carregarAmbientes() {
 }
 
 /* =========================================================
-   CRUD DE AMBIENTES (COM ATUALIZAÇÃO AUTOMÁTICA DO PAINEL)
+   CRUD DE AMBIENTES
    ========================================================= */
 function carregarTabelaAmbientes() {
   const tabelaCorpo = document.getElementById("tabela-ambientes-corpo");
@@ -427,7 +483,7 @@ async function salvarAmbiente(e) {
   limparFormAmbiente();
   await carregarAmbientes();
   carregarTabelaAmbientes();
-  await carregarPainelInspetor(); // Atualiza a grade visual do inspetor imediatamente
+  await carregarPainelInspetor();
 }
 
 function prepararEdicaoAmbiente(id) {
@@ -456,12 +512,12 @@ async function excluirAmbiente(id) {
     await supabaseClient.from("ambientes").delete().eq("id", id);
     await carregarAmbientes();
     carregarTabelaAmbientes();
-    await carregarPainelInspetor(); // Remove o ambiente da grade do inspetor imediatamente
+    await carregarPainelInspetor();
   }
 }
 
 /* =========================================================
-   MÓDULO DE RESERVAS (CONSULTA, SOLICITAÇÃO E VALIDAÇÃO)
+   MÓDULO DE RESERVAS
    ========================================================= */
 async function carregarReservas() {
   const segmentoEl = document.getElementById("filtro-segmento");
