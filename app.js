@@ -231,7 +231,7 @@ function trocarAba(aba) {
 }
 
 /* =========================================================
-   PAINEL DO INSPETOR (COLUNAS DE SEGMENTOS NA HORIZONTAL)
+   PAINEL DO INSPETOR (DISPOSIÇÃO VERTICAL DOS BLOCOS)
    ========================================================= */
 async function carregarPainelInspetor() {
   const container = document.getElementById("grid-ambientes-inspetor");
@@ -299,8 +299,8 @@ async function carregarPainelInspetor() {
     return a.nome.localeCompare(b.nome);
   });
 
-  // Função interna para renderizar cada coluna de segmento
-  const renderizarColunaSegmento = (titulo, lista) => {
+  // Função interna para renderizar o bloco vertical de cada segmento
+  const renderizarBlocoSegmento = (titulo, lista) => {
     if (!lista || lista.length === 0) return;
 
     const bloco = document.createElement("div");
@@ -349,15 +349,15 @@ async function carregarPainelInspetor() {
     container.appendChild(bloco);
   };
 
-  // 1ª Coluna: SALAS DE AULA
-  renderizarColunaSegmento("🏫 SALAS DE AULA", salasDeAula);
+  // 1º Bloco (Topo): SALAS DE AULA
+  renderizarBlocoSegmento("🏫 SALAS DE AULA", salasDeAula);
 
-  // Colunas seguintes: SEGMENTOS em Ordem Alfabética
+  // Blocos seguintes (Abaixo): SEGMENTOS em Ordem Alfabética
   const segmentosOrdenados = Object.keys(porSegmento).sort((a, b) => a.localeCompare(b));
 
   segmentosOrdenados.forEach(seg => {
     porSegmento[seg].sort((a, b) => a.nome.localeCompare(b.nome));
-    renderizarColunaSegmento(`🔬 ${seg.toUpperCase()}`, porSegmento[seg]);
+    renderizarBlocoSegmento(`🔬 SEGMENTO: ${seg.toUpperCase()}`, porSegmento[seg]);
   });
 }
 
