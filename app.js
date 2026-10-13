@@ -151,30 +151,26 @@ async function carregarPerfilEIniciar() {
     .eq("id", usuarioLogado.id)
     .maybeSingle();
 
-  if (data) {
-    perfilUsuario = data;
-    // Se o usuário antigo não possuir o campo status, considera Aprovado
-    if (!perfilUsuario.status) {
-      perfilUsuario.status = 'Aprovado';
-    }
-  } else {
-    // Se o perfil não for encontrado na tabela (foi recusado/removido), bloqueia o acesso
-    const meta = usuarioLogado.user_metadata || {};
-    perfilUsuario = {
-      nome: meta.nome || usuarioLogado.email,
-      cargo: meta.cargo || "Instrutor",
-      segmento: meta.segmento || "Geral",
-      status: 'Recusado'
-    };
+  // SE NÃO HOUVER REGISTRO NA TABELA PERFIS (EX: FOI RECUSADO/DELETADO), BLOQUEIA O ACESSO
+  if (!data) {
+    alert("Acesso Negado: Cadastro não encontrado ou foi recusado pelo sistema.");
+    await supabaseClient.auth.signOut();
+    exibirTelaAuth();
+    return;
   }
 
-  // BLOQUEIO RIGOROSO DE ACESSO
-  if (perfilUsuario.status !== 'Aprovado') {
-    if (perfilUsuario.status === 'Recusado') {
-      alert(`Acesso Negado: O seu cadastro foi recusado ou desativado por um Técnico de Educação.`);
-    } else {
-      alert(`Olá, ${perfilUsuario.nome}.\n\nSeu cadastro está AGUARDANDO VALIDAÇÃO do sistema.\n\nAssim que for confirmado, seu acesso será liberado.`);
-    }
+  perfilUsuario = data;
+
+  // BLOQUEIO SE ESTIVER PENDENTE OU RECUSADO
+  if (perfilUsuario.status === 'Pendente') {
+    alert(`Olá, ${perfilUsuario.nome}.\n\nSeu cadastro está AGUARDANDO VALIDAÇÃO do sistema.\n\nAssim que for confirmado, seu acesso será liberado.`);
+    await supabaseClient.auth.signOut();
+    exibirTelaAuth();
+    return;
+  }
+
+  if (perfilUsuario.status === 'Recusado') {
+    alert("Acesso Negado: O seu cadastro foi recusado por um Técnico de Educação.");
     await supabaseClient.auth.signOut();
     exibirTelaAuth();
     return;
@@ -792,12 +788,12 @@ async function salvarEValidarFuncionario(e) {
   }
 }
 
-// RECUSA O CADASTRO E BLOQUEIA ACESSO FUTURO
+// RECUSA O CADASTRO E DELETA O REGISTRO DO BANCO
 async function recusarFuncionario(id) {
-  if (confirm("Deseja recusar o cadastro deste funcionário? Ele não terá acesso ao sistema.")) {
+  if (confirm("Deseja recusar este cadastro? O registro será excluído e o acesso bloqueado.")) {
     const { error } = await supabaseClient
       .from("perfis")
-      .update({ status: 'Recusado' })
+      .delete()
       .eq("id", id);
 
     if (error) {
@@ -808,12 +804,12 @@ async function recusarFuncionario(id) {
   }
 }
 
-// DESATIVA/DESVALÍDA UM FUNCIONÁRIO JÁ EXISTENTE
+// EXCLUI/REMOVE UM FUNCIONÁRIO DO BANCO DE DADOS
 async function excluirFuncionario(id) {
-  if (confirm("Deseja remover o acesso deste funcionário? O cadastro será desativado.")) {
+  if (confirm("Deseja remover este funcionário? O registro será excluído do sistema.")) {
     const { error } = await supabaseClient
       .from("perfis")
-      .update({ status: 'Recusado' })
+      .delete()
       .eq("id", id);
 
     if (error) {
