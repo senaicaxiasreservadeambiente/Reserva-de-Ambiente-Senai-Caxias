@@ -257,12 +257,26 @@ th {
 .badge-status.Aprovada { background-color: #d4edda; color: #155724; }
 .badge-status.Recusada { background-color: #f8d7da; color: #721c24; }
 
-/* PAINEL DO INSPETOR (GRID DE AMBIENTES) */
+/* PAINEL DO INSPETOR (AGRUPAMENTO POR SEGMENTO) */
+.segmento-bloco {
+  margin-bottom: 2rem;
+}
+
+.segmento-titulo {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #0056b3;
+  border-bottom: 2px solid #0056b3;
+  padding-bottom: 0.3rem;
+  margin-bottom: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .grid-ambientes {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
   gap: 1rem;
-  margin-top: 1rem;
 }
 
 .card-ambiente-box {
