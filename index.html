@@ -112,9 +112,9 @@
               <button class="btn btn-sm btn-primary" onclick="carregarPainelInspetor()">🔄 Atualizar</button>
             </div>
           </div>
-          <p class="hint mb-1">Deslize lateralmente para visualizar todos os segmentos. Clique em um ambiente para registrar quem está utilizando no momento.</p>
+          <p class="hint mb-1">Clique sobre qualquer ambiente para registrar quem está utilizando no momento.</p>
           
-          <!-- CONTAINER DAS COLUNAS DE SEGMENTOS NA HORIZONTAL -->
+          <!-- CONTAINER VERTICAL DOS BLOCOS DE SEGMENTOS -->
           <div id="grid-ambientes-inspetor" class="painel-segmentos-container">
             <p class="text-center">Carregando mapa de ambientes...</p>
           </div>
@@ -374,8 +374,8 @@
         </div>
 
         <div style="display: flex; gap: 0.5rem; margin-top: 1.2rem; flex-wrap: wrap; justify-content: flex-end;">
-          <button type="submit" class="btn btn-success">Salvar Registro</button>
-          <button type="button" class="btn btn-danger" onclick="liberarAmbienteOcupado()">Liberar</button>
+          <button type="submit" class="btn btn-success">💾 Salvar Registro</button>
+          <button type="button" class="btn btn-danger" onclick="liberarAmbienteOcupado()">🗑️ Liberar</button>
           <button type="button" class="btn btn-secondary" onclick="fecharModalOcupacao()">Cancelar</button>
         </div>
       </form>
