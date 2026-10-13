@@ -91,7 +91,7 @@
 
     <main class="main-content">
 
-      <!-- ABA PAINEL DE CONTROLE DO INSPETOR (GRADE VISUAL DE AMBIENTES) -->
+      <!-- ABA PAINEL DO INSPETOR -->
       <section id="aba-inspetor" class="tab-content hidden">
         <div class="card">
           <div class="header-filters">
@@ -112,10 +112,10 @@
               <button class="btn btn-sm btn-primary" onclick="carregarPainelInspetor()">🔄 Atualizar</button>
             </div>
           </div>
-          <p class="hint mb-1">Clique sobre qualquer ambiente para registrar ou alterar o responsável/instrutor presente no momento.</p>
+          <p class="hint mb-1">Deslize lateralmente para visualizar todos os segmentos. Clique em um ambiente para registrar quem está utilizando no momento.</p>
           
-          <!-- GRID DE AMBIENTES ESTILO SALAS DE AULA / LABORATÓRIOS -->
-          <div id="grid-ambientes-inspetor" class="grid-ambientes">
+          <!-- CONTAINER DAS COLUNAS DE SEGMENTOS NA HORIZONTAL -->
+          <div id="grid-ambientes-inspetor" class="painel-segmentos-container">
             <p class="text-center">Carregando mapa de ambientes...</p>
           </div>
         </div>
@@ -172,7 +172,7 @@
         </div>
       </section>
 
-      <!-- ABA 2: SOLICITAÇÃO DE RESERVA (INSTRUTOR / TÉCNICO / COORDENADOR) -->
+      <!-- ABA 2: SOLICITAÇÃO DE RESERVA -->
       <section id="aba-solicitar" class="tab-content hidden">
         <div class="card">
           <h2>📝 Solicitar Nova Reserva</h2>
@@ -222,7 +222,7 @@
         </div>
       </section>
 
-      <!-- ABA 3: GESTÃO E VALIDAÇÃO DE RESERVAS (TÉCNICO DE EDUCAÇÃO E COORDENADOR) -->
+      <!-- ABA 3: GESTÃO E VALIDAÇÃO DE RESERVAS -->
       <section id="aba-validar" class="tab-content hidden">
         <div class="card">
           <h2>⚙️ Gerenciamento e Validação de Reservas Pendentes</h2>
@@ -248,7 +248,7 @@
         </div>
       </section>
 
-      <!-- ABA 4: GESTÃO DE AMBIENTES (CRUD - TÉCNICO E COORDENADOR) -->
+      <!-- ABA 4: GESTÃO DE AMBIENTES -->
       <section id="aba-ambientes" class="tab-content hidden">
         <div class="card">
           <h2 id="titulo-form-ambiente">🏫 Cadastrar / Editar Ambiente</h2>
@@ -326,7 +326,7 @@
         </div>
       </section>
 
-      <!-- ABA 5: GESTÃO DE FUNCIONÁRIOS (CRUD - TÉCNICO E COORDENADOR) -->
+      <!-- ABA 5: GESTÃO DE FUNCIONÁRIOS -->
       <section id="aba-funcionarios" class="tab-content hidden">
         <div class="card">
           <h2>👥 Quadro de Funcionários Cadastrados</h2>
@@ -374,8 +374,8 @@
         </div>
 
         <div style="display: flex; gap: 0.5rem; margin-top: 1.2rem; flex-wrap: wrap; justify-content: flex-end;">
-          <button type="submit" class="btn btn-success">💾 Salvar Registro</button>
-          <button type="button" class="btn btn-danger" onclick="liberarAmbienteOcupado()">🗑️ Liberar</button>
+          <button type="submit" class="btn btn-success">Salvar Registro</button>
+          <button type="button" class="btn btn-danger" onclick="liberarAmbienteOcupado()">Liberar</button>
           <button type="button" class="btn btn-secondary" onclick="fecharModalOcupacao()">Cancelar</button>
         </div>
       </form>
