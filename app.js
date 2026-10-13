@@ -231,7 +231,7 @@ function trocarAba(aba) {
 }
 
 /* =========================================================
-   PAINEL DO INSPETOR (DISPOSIÇÃO VERTICAL DOS BLOCOS)
+   PAINEL DO INSPETOR (ORDENADO COM OCUPADOS NO TOPO)
    ========================================================= */
 async function carregarPainelInspetor() {
   const container = document.getElementById("grid-ambientes-inspetor");
@@ -276,7 +276,14 @@ async function carregarPainelInspetor() {
 
   container.innerHTML = "";
 
-  // 4. SEPARAÇÃO E ORDENAÇÃO DOS AMBIENTES
+  // Função auxiliar para verificar se um ambiente está ocupado no momento
+  const checarOcupacao = (ambId) => {
+    if (mapaOcupacoesInspetor[ambId]) return true;
+    if (reservas && reservas.some(r => r.ambiente_id === ambId)) return true;
+    return false;
+  };
+
+  // 4. SEPARAÇÃO DOS AMBIENTES
   const salasDeAula = [];
   const porSegmento = {};
 
@@ -291,8 +298,12 @@ async function carregarPainelInspetor() {
     }
   });
 
-  // Ordena as Salas de Aula numericamente (1 a 15+)
+  // Ordena Salas de Aula: Ocupados primeiro; depois pela numeração das salas
   salasDeAula.sort((a, b) => {
+    const ocA = checarOcupacao(a.id) ? 1 : 0;
+    const ocB = checarOcupacao(b.id) ? 1 : 0;
+    if (ocA !== ocB) return ocB - ocA; // Ocupados no topo (1 antes de 0)
+
     const numA = parseInt((a.nome.match(/\d+/) || [999])[0], 10);
     const numB = parseInt((b.nome.match(/\d+/) || [999])[0], 10);
     if (numA !== numB) return numA - numB;
@@ -352,11 +363,17 @@ async function carregarPainelInspetor() {
   // 1º Bloco (Topo): SALAS DE AULA
   renderizarBlocoSegmento("🏫 SALAS DE AULA", salasDeAula);
 
-  // Blocos seguintes (Abaixo): SEGMENTOS em Ordem Alfabética
+  // Blocos seguintes (Abaixo): SEGMENTOS em Ordem Alfabética (Ocupados no topo em cada segmento)
   const segmentosOrdenados = Object.keys(porSegmento).sort((a, b) => a.localeCompare(b));
 
   segmentosOrdenados.forEach(seg => {
-    porSegmento[seg].sort((a, b) => a.nome.localeCompare(b.nome));
+    porSegmento[seg].sort((a, b) => {
+      const ocA = checarOcupacao(a.id) ? 1 : 0;
+      const ocB = checarOcupacao(b.id) ? 1 : 0;
+      if (ocA !== ocB) return ocB - ocA; // Ocupados no topo
+      return a.nome.localeCompare(b.nome); // Ordem alfabética para o mesmo status
+    });
+
     renderizarBlocoSegmento(`🔬 SEGMENTO: ${seg.toUpperCase()}`, porSegmento[seg]);
   });
 }
