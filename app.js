@@ -231,17 +231,13 @@ function trocarAba(aba) {
 }
 
 /* =========================================================
-   PAINEL DO INSPETOR (ORDENADO COM OCUPADOS NO TOPO)
+   PAINEL DO INSPETOR (GRADE ÚNICA CONTINUA SEM ETIQUETAS)
    ========================================================= */
 async function carregarPainelInspetor() {
   const container = document.getElementById("grid-ambientes-inspetor");
   if (!container) return;
 
-  container.className = "painel-segmentos-container";
-
   const dataFiltro = document.getElementById("insp-data").value;
-  const turnoFiltro = document.getElementById("insp-turno").value;
-
   if (!dataFiltro) return;
 
   container.innerHTML = '<p class="text-center">Atualizando grade de ambientes...</p>';
@@ -253,21 +249,19 @@ async function carregarPainelInspetor() {
     return;
   }
 
-  // 2. Busca reservas aprovadas para a data e turno selecionados
+  // 2. Busca reservas aprovadas para a data selecionada
   const { data: reservas } = await supabaseClient
     .from("reservas")
     .select("*")
     .eq("status", "Aprovada")
     .lte("data_inicio", dataFiltro)
-    .gte("data_fim", dataFiltro)
-    .eq("turno", turnoFiltro);
+    .gte("data_fim", dataFiltro);
 
-  // 3. Busca marcações manuais dos inspetores para a data e turno
+  // 3. Busca marcações manuais dos inspetores para a data selecionada
   const { data: ocupacoes } = await supabaseClient
     .from("ocupacoes_ambientes")
     .select("*")
-    .eq("data", dataFiltro)
-    .eq("turno", turnoFiltro);
+    .eq("data", dataFiltro);
 
   mapaOcupacoesInspetor = {};
   if (ocupacoes) {
@@ -276,105 +270,63 @@ async function carregarPainelInspetor() {
 
   container.innerHTML = "";
 
-  // Função auxiliar para verificar se um ambiente está ocupado no momento
   const checarOcupacao = (ambId) => {
     if (mapaOcupacoesInspetor[ambId]) return true;
     if (reservas && reservas.some(r => r.ambiente_id === ambId)) return true;
     return false;
   };
 
-  // 4. SEPARAÇÃO DOS AMBIENTES
-  const salasDeAula = [];
-  const porSegmento = {};
-
-  ambientes.forEach(amb => {
-    const eSala = amb.tipo === "Sala de Aula" || amb.nome.toLowerCase().includes("sala");
-    if (eSala) {
-      salasDeAula.push(amb);
-    } else {
-      const seg = amb.segmento || "Diversos";
-      if (!porSegmento[seg]) porSegmento[seg] = [];
-      porSegmento[seg].push(amb);
-    }
-  });
-
-  // Ordena Salas de Aula: Ocupados primeiro; depois pela numeração das salas
-  salasDeAula.sort((a, b) => {
+  // 4. ORDENAÇÃO DOS AMBIENTES: Ocupados primeiro; depois Salas de Aula (1 a 15+) e demais em Ordem Alfabética
+  ambientes.sort((a, b) => {
     const ocA = checarOcupacao(a.id) ? 1 : 0;
     const ocB = checarOcupacao(b.id) ? 1 : 0;
-    if (ocA !== ocB) return ocB - ocA; // Ocupados no topo (1 antes de 0)
+    if (ocA !== ocB) return ocB - ocA; // Ocupados no topo
 
-    const numA = parseInt((a.nome.match(/\d+/) || [999])[0], 10);
-    const numB = parseInt((b.nome.match(/\d+/) || [999])[0], 10);
-    if (numA !== numB) return numA - numB;
+    const eSalaA = a.tipo === "Sala de Aula" || a.nome.toLowerCase().includes("sala");
+    const eSalaB = b.tipo === "Sala de Aula" || b.nome.toLowerCase().includes("sala");
+
+    if (eSalaA && !eSalaB) return -1;
+    if (!eSalaA && eSalaB) return 1;
+
+    if (eSalaA && eSalaB) {
+      const numA = parseInt((a.nome.match(/\d+/) || [999])[0], 10);
+      const numB = parseInt((b.nome.match(/\d+/) || [999])[0], 10);
+      if (numA !== numB) return numA - numB;
+    }
+
     return a.nome.localeCompare(b.nome);
   });
 
-  // Função interna para renderizar o bloco vertical de cada segmento
-  const renderizarBlocoSegmento = (titulo, lista) => {
-    if (!lista || lista.length === 0) return;
+  // 5. RENDERIZAÇÃO DIRETA DE TODOS OS CARTOES NA GRADE ÚNICA
+  ambientes.forEach(amb => {
+    let responsavel = null;
+    let observacao = "";
+    let isOcupado = false;
 
-    const bloco = document.createElement("div");
-    bloco.className = "segmento-bloco";
-
-    const header = document.createElement("div");
-    header.className = "segmento-titulo";
-    header.innerText = titulo;
-    bloco.appendChild(header);
-
-    const grid = document.createElement("div");
-    grid.className = "grid-ambientes";
-
-    lista.forEach(amb => {
-      let responsavel = null;
-      let observacao = "";
-      let isOcupado = false;
-
-      if (mapaOcupacoesInspetor[amb.id]) {
-        responsavel = mapaOcupacoesInspetor[amb.id].responsavel_nome;
-        observacao = mapaOcupacoesInspetor[amb.id].observacao || "";
+    if (mapaOcupacoesInspetor[amb.id]) {
+      responsavel = mapaOcupacoesInspetor[amb.id].responsavel_nome;
+      observacao = mapaOcupacoesInspetor[amb.id].observacao || "";
+      isOcupado = true;
+    } else if (reservas) {
+      const res = reservas.find(r => r.ambiente_id === amb.id);
+      if (res) {
+        responsavel = `Instrutor ${res.nome_instrutor}`;
         isOcupado = true;
-      } else if (reservas) {
-        const res = reservas.find(r => r.ambiente_id === amb.id);
-        if (res) {
-          responsavel = `Instrutor ${res.nome_instrutor}`;
-          isOcupado = true;
-        }
       }
+    }
 
-      const card = document.createElement("div");
-      card.className = `card-ambiente-box ${isOcupado ? 'ocupado' : 'livre'}`;
-      card.onclick = () => abrirModalOcupacao(amb.id, amb.nome, responsavel, observacao);
+    const card = document.createElement("div");
+    card.className = `card-ambiente-box ${isOcupado ? 'ocupado' : 'livre'}`;
+    card.onclick = () => abrirModalOcupacao(amb.id, amb.nome, responsavel, observacao);
 
-      card.innerHTML = `
-        <div class="card-ambiente-nome">${amb.nome}</div>
-        <div class="card-ambiente-user">
-          ${isOcupado ? `👤 ${responsavel}` : 'DISPONÍVEL'}
-        </div>
-      `;
+    card.innerHTML = `
+      <div class="card-ambiente-nome">${amb.nome}</div>
+      <div class="card-ambiente-user">
+        ${isOcupado ? `👤 ${responsavel}` : 'DISPONÍVEL'}
+      </div>
+    `;
 
-      grid.appendChild(card);
-    });
-
-    bloco.appendChild(grid);
-    container.appendChild(bloco);
-  };
-
-  // 1º Bloco (Topo): SALAS DE AULA
-  renderizarBlocoSegmento("🏫 SALAS DE AULA", salasDeAula);
-
-  // Blocos seguintes (Abaixo): SEGMENTOS em Ordem Alfabética (Ocupados no topo em cada segmento)
-  const segmentosOrdenados = Object.keys(porSegmento).sort((a, b) => a.localeCompare(b));
-
-  segmentosOrdenados.forEach(seg => {
-    porSegmento[seg].sort((a, b) => {
-      const ocA = checarOcupacao(a.id) ? 1 : 0;
-      const ocB = checarOcupacao(b.id) ? 1 : 0;
-      if (ocA !== ocB) return ocB - ocA; // Ocupados no topo
-      return a.nome.localeCompare(b.nome); // Ordem alfabética para o mesmo status
-    });
-
-    renderizarBlocoSegmento(`🔬 SEGMENTO: ${seg.toUpperCase()}`, porSegmento[seg]);
+    container.appendChild(card);
   });
 }
 
@@ -397,12 +349,11 @@ async function salvarOcupacaoInspetor(e) {
   const responsavel = document.getElementById("modal-responsavel").value.trim();
   const obs = document.getElementById("modal-observacao").value.trim();
   const dataFiltro = document.getElementById("insp-data").value;
-  const turnoFiltro = document.getElementById("insp-turno").value;
 
   const payload = {
     ambiente_id: ambienteId,
     data: dataFiltro,
-    turno: turnoFiltro,
+    turno: "Geral",
     responsavel_nome: `Instrutor ${responsavel}`,
     observacao: obs,
     registrado_por: perfilUsuario ? perfilUsuario.nome : "Inspetor"
@@ -423,15 +374,13 @@ async function salvarOcupacaoInspetor(e) {
 async function liberarAmbienteOcupado() {
   const ambienteId = document.getElementById("modal-ambiente-id").value;
   const dataFiltro = document.getElementById("insp-data").value;
-  const turnoFiltro = document.getElementById("insp-turno").value;
 
   if (confirm("Deseja liberar este ambiente e remover o registro?")) {
     await supabaseClient
       .from("ocupacoes_ambientes")
       .delete()
       .eq("ambiente_id", ambienteId)
-      .eq("data", dataFiltro)
-      .eq("turno", turnoFiltro);
+      .eq("data", dataFiltro);
 
     fecharModalOcupacao();
     await carregarPainelInspetor();
