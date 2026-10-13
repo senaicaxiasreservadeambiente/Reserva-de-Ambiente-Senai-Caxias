@@ -54,12 +54,11 @@ form {
   gap: 0.9rem;
 }
 
-/* Evita auto-zoom no Safari iOS mantendo font-size de no mínimo 16px */
 input, select, textarea {
   padding: 0.75rem 0.9rem;
   border: 1px solid #cccccc;
   border-radius: 8px;
-  font-size: 16px;
+  font-size: 16px; /* Evita zoom no iOS */
   outline: none;
   width: 100%;
   background-color: #fff;
@@ -165,7 +164,7 @@ input:focus, select:focus, textarea:focus {
 
 /* MAIN LAYOUT */
 .main-content {
-  max-width: 1080px;
+  max-width: 1280px;
   margin: 1.2rem auto;
   padding: 0 0.8rem;
 }
@@ -188,7 +187,7 @@ input:focus, select:focus, textarea:focus {
   cursor: pointer;
   font-weight: bold;
   transition: opacity 0.2s;
-  min-height: 44px; /* Tamanho ideal para toque em celulares */
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -281,38 +280,59 @@ th {
 .badge-status.Aprovada { background-color: #d4edda; color: #155724; }
 .badge-status.Recusada { background-color: #f8d7da; color: #721c24; }
 
-/* PAINEL DO INSPETOR (GRADE DE AMBIENTES RESPONSIVA) */
+/* PAINEL DO INSPETOR (LAYOUT HORIZONTAL DE SEGMENTOS) */
+.painel-segmentos-container {
+  display: flex;
+  flex-direction: row;
+  gap: 1.2rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 1rem;
+  align-items: flex-start;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
 .segmento-bloco {
-  margin-bottom: 1.8rem;
+  flex: 0 0 280px; /* Largura fixa por coluna de segmento */
+  min-width: 260px;
+  background-color: #f8f9fa;
+  border: 1px solid #dce1e7;
+  border-radius: 10px;
+  padding: 0.9rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 
 .segmento-titulo {
-  font-size: 1rem;
+  font-size: 0.92rem;
   font-weight: bold;
-  color: #0056b3;
-  border-bottom: 2px solid #0056b3;
-  padding-bottom: 0.3rem;
+  color: #ffffff;
+  background-color: #0056b3;
+  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
   margin-bottom: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0,86,179,0.2);
 }
 
 .grid-ambientes {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 0.8rem;
+  grid-template-columns: repeat(2, 1fr); /* 2 cartões por linha dentro de cada coluna */
+  gap: 0.6rem;
 }
 
 .card-ambiente-box {
-  border-radius: 10px;
-  padding: 1rem 0.6rem;
+  border-radius: 8px;
+  padding: 0.8rem 0.4rem;
   text-align: center;
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 110px;
+  min-height: 95px;
   border: 2px solid #0056b3;
   box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
@@ -334,16 +354,16 @@ th {
 }
 
 .card-ambiente-nome {
-  font-size: 1rem;
+  font-size: 0.92rem;
   font-weight: bold;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.3rem;
   word-break: break-word;
 }
 
 .card-ambiente-user {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: bold;
-  padding: 0.4rem 0.2rem;
+  padding: 0.3rem 0.2rem;
   border-radius: 6px;
   text-transform: uppercase;
   line-height: 1.2;
@@ -382,7 +402,7 @@ th {
   box-shadow: 0 5px 25px rgba(0,0,0,0.25);
 }
 
-/* MEDIA QUERIES OTIMIZADAS PARA SMARTPHONES */
+/* RESPONSIVIDADE PARA SMARTPHONES */
 @media (max-width: 600px) {
   .navbar {
     flex-direction: column;
@@ -425,22 +445,9 @@ th {
     gap: 0.8rem;
   }
 
-  .grid-ambientes {
-    grid-template-columns: repeat(2, 1fr); /* 2 colunas no celular */
-    gap: 0.6rem;
-  }
-
-  .card-ambiente-box {
-    padding: 0.8rem 0.4rem;
-    min-height: 100px;
-  }
-
-  .card-ambiente-nome {
-    font-size: 0.92rem;
-  }
-
-  .card-ambiente-user {
-    font-size: 0.75rem;
+  .segmento-bloco {
+    flex: 0 0 82vw; /* Exibe quase toda a coluna na tela do smartphone deixando a ponta do próximo segmento visível */
+    min-width: 250px;
   }
 
   .filters-row {
