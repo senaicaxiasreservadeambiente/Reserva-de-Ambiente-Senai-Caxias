@@ -86,7 +86,7 @@
       <button id="btn-tab-solicitar" class="nav-btn hidden" onclick="trocarAba('solicitar')">➕ Solicitar Reserva</button>
       <button id="btn-tab-validar" class="nav-btn hidden" onclick="trocarAba('validar')">⚙️ Administrar Reservas <span id="badge-notif" class="notif-count hidden">0</span></button>
       <button id="btn-tab-ambientes" class="nav-btn hidden" onclick="trocarAba('ambientes')">🏫 Gerenciar Ambientes</button>
-      <button id="btn-tab-funcionarios" class="nav-btn hidden" onclick="trocarAba('funcionarios')">👥 Gerenciar Funcionários</button>
+      <button id="btn-tab-funcionarios" class="nav-btn hidden" onclick="trocarAba('funcionarios')">👥 Gerenciar Funcionários <span id="badge-notif-user" class="notif-count hidden">0</span></button>
     </nav>
 
     <main class="main-content">
@@ -318,11 +318,34 @@
         </div>
       </section>
 
-      <!-- ABA 5: GESTÃO DE FUNCIONÁRIOS -->
+      <!-- ABA 5: GESTÃO DE FUNCIONÁRIOS E VALIDAÇÃO DE CADASTROS -->
       <section id="aba-funcionarios" class="tab-content hidden">
+        <!-- SEÇÃO DE VALIDAÇÃO DE PENDENTES -->
+        <div class="card" style="border-top: 5px solid #ffc107;">
+          <h2>⏳ Cadastros Pendentes de Validação</h2>
+          <p class="hint mb-1">Verifique o cargo selecionado pelo novo funcionário. Você pode corrigir o cargo/dados antes de validar o cadastro.</p>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>E-mail</th>
+                  <th>Matrícula</th>
+                  <th>Segmento</th>
+                  <th>Cargo Solicitado</th>
+                  <th class="text-center">Ações de Validação</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-funcionarios-pendentes-corpo">
+                <tr><td colspan="6" class="text-center">Nenhum cadastro pendente de validação.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SEÇÃO DE FUNCIONÁRIOS ATIVOS/VALIDADOS -->
         <div class="card">
-          <h2>👥 Quadro de Funcionários Cadastrados</h2>
-          <p class="hint mb-1">Como Técnico de Educação ou Coordenador você pode visualizar, cadastrar novos instrutores/equipe e gerenciar os acessos.</p>
+          <h2>👥 Quadro de Funcionários Validados</h2>
           <div class="table-responsive">
             <table>
               <thead>
@@ -344,6 +367,62 @@
       </section>
 
     </main>
+  </div>
+
+  <!-- MODAL DE CORREÇÃO E EDICÃO DE FUNCIONÁRIO/CARGO -->
+  <div id="modal-editar-funcionario" class="modal-overlay hidden">
+    <div class="modal-card">
+      <h3>✏️ Validar / Corrigir Cadastro de Funcionário</h3>
+      <p class="hint mb-1">Ajuste o cargo ou segmento correto antes de aprovar o cadastro.</p>
+
+      <form id="form-editar-funcionario" onsubmit="salvarEValidarFuncionario(event)">
+        <input type="hidden" id="edit-func-id">
+
+        <div class="form-group">
+          <label for="edit-func-nome">Nome Completo:</label>
+          <input type="text" id="edit-func-nome" required>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-func-matricula">Matrícula:</label>
+          <input type="text" id="edit-func-matricula" required>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-func-segmento">Segmento:</label>
+          <select id="edit-func-segmento" required>
+            <option value="Pedagógico">Pedagógico</option>
+            <option value="TI">TI</option>
+            <option value="Elétrica">Elétrica</option>
+            <option value="Automação">Automação</option>
+            <option value="Mecânica">Mecânica</option>
+            <option value="Petroquímica">Petroquímica</option>
+            <option value="FabLab">FabLab</option>
+            <option value="Confecção">Confecção</option>
+            <option value="Energias Renováveis">Energias Renováveis</option>
+            <option value="Logística / Gestão">Logística / Gestão</option>
+            <option value="Projetos">Projetos</option>
+            <option value="Diversos">Diversos / Serviços</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-func-cargo">Cargo Validado:</label>
+          <select id="edit-func-cargo" required>
+            <option value="Tecnico de Educacao">Técnico de Educação</option>
+            <option value="Coordenador">Coordenador</option>
+            <option value="Instrutor">Instrutor</option>
+            <option value="Inspetor">Inspetor</option>
+            <option value="Estagiario">Estagiário</option>
+          </select>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; margin-top: 1.2rem; justify-content: flex-end;">
+          <button type="submit" class="btn btn-success">✔️ Salvar e Validar Acesso</button>
+          <button type="button" class="btn btn-secondary" onclick="fecharModalEditarFuncionario()">Cancelar</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- MODAL DE REGISTRO DE OCUPAÇÃO DO INSPETOR -->
