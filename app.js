@@ -113,7 +113,7 @@ async function handleCadastro(e) {
       console.error("Erro ao salvar tabela perfis:", perfilError);
     }
 
-    alert(`Cadastro realizado com sucesso!\n\nPor medida de segurança, o seu cargo (${cargo}) precisa ser validado por um Técnico de Educação antes do primeiro acesso.`);
+    alert(`Cadastro realizado com sucesso!\n\nPor medida de segurança, o seu cargo (${cargo}) precisa ser validado pelo sistema antes do primeiro acesso. Por favor aguarde!`);
     document.getElementById("form-cadastro").reset();
     toggleAuth("login");
   }
