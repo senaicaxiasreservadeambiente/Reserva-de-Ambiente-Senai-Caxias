@@ -101,21 +101,13 @@
                 <label for="insp-data">Data:</label>
                 <input type="date" id="insp-data" onchange="carregarPainelInspetor()">
               </div>
-              <div class="filter-item">
-                <label for="insp-turno">Turno:</label>
-                <select id="insp-turno" onchange="carregarPainelInspetor()">
-                  <option value="Manhã">Manhã</option>
-                  <option value="Tarde">Tarde</option>
-                  <option value="Noite">Noite</option>
-                </select>
-              </div>
               <button class="btn btn-sm btn-primary" onclick="carregarPainelInspetor()">🔄 Atualizar</button>
             </div>
           </div>
           <p class="hint mb-1">Clique sobre qualquer ambiente para registrar quem está utilizando no momento.</p>
           
-          <!-- CONTAINER VERTICAL DOS BLOCOS DE SEGMENTOS -->
-          <div id="grid-ambientes-inspetor" class="painel-segmentos-container">
+          <!-- GRADE ÚNICA DE AMBIENTES -->
+          <div id="grid-ambientes-inspetor" class="grid-ambientes">
             <p class="text-center">Carregando mapa de ambientes...</p>
           </div>
         </div>
@@ -358,7 +350,7 @@
   <div id="modal-ocupacao" class="modal-overlay hidden">
     <div class="modal-card">
       <h3 id="modal-titulo-ambiente">Registrar Uso do Ambiente</h3>
-      <p class="hint mb-1" id="modal-subtitulo-info">Informe quem está utilizando o ambiente neste turno.</p>
+      <p class="hint mb-1" id="modal-subtitulo-info">Informe quem está utilizando o ambiente neste momento.</p>
       
       <form id="form-modal-ocupacao" onsubmit="salvarOcupacaoInspetor(event)">
         <input type="hidden" id="modal-ambiente-id">
