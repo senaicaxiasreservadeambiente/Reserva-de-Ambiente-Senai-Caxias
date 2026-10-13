@@ -81,6 +81,7 @@
 
     <!-- NAVEGAÇÃO POR ABAS -->
     <nav class="sub-nav">
+      <button id="btn-tab-inspetor" class="nav-btn hidden" onclick="trocarAba('inspetor')">📺 Grade de Ambientes (Inspetor)</button>
       <button class="nav-btn active" onclick="trocarAba('reservas')">📅 Quadro de Reservas</button>
       <button id="btn-tab-solicitar" class="nav-btn hidden" onclick="trocarAba('solicitar')">➕ Solicitar Reserva</button>
       <button id="btn-tab-validar" class="nav-btn hidden" onclick="trocarAba('validar')">⚙️ Administrar Reservas <span id="badge-notif" class="notif-count hidden">0</span></button>
@@ -89,6 +90,36 @@
     </nav>
 
     <main class="main-content">
+
+      <!-- ABA PAINEL DE CONTROLE DO INSPETOR (GRADE VISUAL DE AMBIENTES) -->
+      <section id="aba-inspetor" class="tab-content hidden">
+        <div class="card">
+          <div class="header-filters">
+            <h2>📺 Grade de Ambientes em Tempo Real</h2>
+            <div class="filters-row">
+              <div class="filter-item">
+                <label for="insp-data">Data:</label>
+                <input type="date" id="insp-data" onchange="carregarPainelInspetor()">
+              </div>
+              <div class="filter-item">
+                <label for="insp-turno">Turno:</label>
+                <select id="insp-turno" onchange="carregarPainelInspetor()">
+                  <option value="Manhã">Manhã</option>
+                  <option value="Tarde">Tarde</option>
+                  <option value="Noite">Noite</option>
+                </select>
+              </div>
+              <button class="btn btn-sm btn-primary" onclick="carregarPainelInspetor()">🔄 Atualizar</button>
+            </div>
+          </div>
+          <p class="hint mb-1">Clique sobre qualquer ambiente para registrar ou alterar o responsável/instrutor presente no momento.</p>
+          
+          <!-- GRID DE AMBIENTES ESTILO SALAS DE AULA / LABORATÓRIOS -->
+          <div id="grid-ambientes-inspetor" class="grid-ambientes">
+            <p class="text-center">Carregando mapa de ambientes...</p>
+          </div>
+        </div>
+      </section>
 
       <!-- ABA 1: VISUALIZAÇÃO GERAL E FILTRADA DE RESERVAS -->
       <section id="aba-reservas" class="tab-content">
@@ -321,6 +352,34 @@
       </section>
 
     </main>
+  </div>
+
+  <!-- MODAL DE REGISTRO DE OCUPAÇÃO DO INSPETOR -->
+  <div id="modal-ocupacao" class="modal-overlay hidden">
+    <div class="modal-card">
+      <h3 id="modal-titulo-ambiente">Registrar Uso do Ambiente</h3>
+      <p class="hint mb-1" id="modal-subtitulo-info">Informe quem está utilizando o ambiente neste turno.</p>
+      
+      <form id="form-modal-ocupacao" onsubmit="salvarOcupacaoInspetor(event)">
+        <input type="hidden" id="modal-ambiente-id">
+        
+        <div class="form-group">
+          <label for="modal-responsavel">Nome do Instrutor / Responsável:</label>
+          <input type="text" id="modal-responsavel" placeholder="Ex: Instrutor Cleber" required>
+        </div>
+
+        <div class="form-group">
+          <label for="modal-observacao">Observação / Turma (Opcional):</label>
+          <input type="text" id="modal-observacao" placeholder="Ex: Aula Prática / Turma Automação">
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; margin-top: 1.2rem; flex-wrap: wrap; justify-content: flex-end;">
+          <button type="submit" class="btn btn-success">💾 Salvar Registro</button>
+          <button type="button" class="btn btn-danger" onclick="liberarAmbienteOcupado()">🗑️ Liberar</button>
+          <button type="button" class="btn btn-secondary" onclick="fecharModalOcupacao()">Cancelar</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <script src="app.js"></script>
