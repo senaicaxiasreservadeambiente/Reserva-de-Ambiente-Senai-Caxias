@@ -169,7 +169,7 @@ async function carregarPerfilEIniciar() {
 
   // BLOQUEIO APENAS SE FOR EXPLICITAMENTE 'Pendente' OU 'Recusado'
   if (perfilUsuario.status === 'Pendente' || perfilUsuario.status === 'Recusado') {
-    alert(`Olá, ${perfilUsuario.nome}.\n\nSeu cadastro está AGUARDANDO VALIDAÇÃO por um Técnico de Educação.\n\nAssim que o seu cargo for confirmado, seu acesso será liberado.`);
+    alert(`Olá, ${perfilUsuario.nome}.\n\nSeu cadastro está AGUARDANDO VALIDAÇÃO do sitema.\n\nAssim que for confirmado, seu acesso será liberado.`);
     await supabaseClient.auth.signOut();
     exibirTelaAuth();
     return;
