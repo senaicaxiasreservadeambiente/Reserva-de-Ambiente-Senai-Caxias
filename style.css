@@ -257,9 +257,94 @@ th {
 .badge-status.Aprovada { background-color: #d4edda; color: #155724; }
 .badge-status.Recusada { background-color: #f8d7da; color: #721c24; }
 
+/* PAINEL DO INSPETOR (GRID DE AMBIENTES) */
+.grid-ambientes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.card-ambiente-box {
+  border-radius: 10px;
+  padding: 1.2rem 0.8rem;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 120px;
+  border: 2px solid #0056b3;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.card-ambiente-box:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+}
+
+.card-ambiente-box.ocupado {
+  background-color: #0056b3;
+  color: #ffffff;
+  border-color: #003d80;
+}
+
+.card-ambiente-box.livre {
+  background-color: #ffffff;
+  color: #495057;
+  border-color: #cccccc;
+}
+
+.card-ambiente-nome {
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin-bottom: 0.4rem;
+}
+
+.card-ambiente-user {
+  font-size: 0.85rem;
+  font-weight: bold;
+  padding: 0.4rem 0.3rem;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.card-ambiente-box.ocupado .card-ambiente-user {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.card-ambiente-box.livre .card-ambiente-user {
+  background-color: #e9ecef;
+  color: #888888;
+}
+
+/* MODAL DE OCUPAÇÃO */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-card {
+  background: #ffffff;
+  padding: 1.8rem;
+  border-radius: 10px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 5px 25px rgba(0,0,0,0.25);
+}
+
 /* RESPONSIVITY */
 @media (max-width: 768px) {
   .navbar { flex-direction: column; gap: 0.6rem; }
   .form-grid { grid-template-columns: 1fr; }
   .header-filters { flex-direction: column; align-items: flex-start; }
+  .grid-ambientes { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
 }
