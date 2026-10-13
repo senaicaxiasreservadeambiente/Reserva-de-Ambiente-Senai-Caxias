@@ -31,7 +31,30 @@ document.addEventListener("DOMContentLoaded", async () => {
   } else {
     exibirTelaAuth();
   }
+
+  // Ativa a escuta em tempo real do Supabase
+  configurarRealtime();
 });
+
+// ESCUTA EM TEMPO REAL (SINCRONIZAÇÃO AUTOMÁTICA ENTRE TELAS)
+function configurarRealtime() {
+  supabaseClient
+    .channel("mudancas-sistema")
+    .on("postgres_changes", { event: "*", schema: "public", table: "ambientes" }, async () => {
+      await carregarAmbientes();
+      carregarTabelaAmbientes();
+      carregarPainelInspetor();
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "ocupacoes_ambientes" }, () => {
+      carregarPainelInspetor();
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "reservas" }, () => {
+      carregarReservas();
+      carregarSolicitacoesPendentes();
+      carregarPainelInspetor();
+    })
+    .subscribe();
+}
 
 // ALTERNA TELA DE AUTH
 function toggleAuth(modo) {
@@ -160,7 +183,6 @@ async function carregarPerfilEIniciar() {
 
   await carregarAmbientes();
 
-  // Direciona o Inspetor para a Grade Visual imediatamente ao entrar
   if (eInspetor) {
     trocarAba("inspetor");
   } else {
@@ -220,8 +242,6 @@ async function carregarPainelInspetor() {
 
   if (!dataFiltro) return;
 
-  container.innerHTML = '<p class="text-center">Atualizando grade de ambientes...</p>';
-
   // 1. Busca todos os ambientes cadastrados
   const { data: ambientes, error: errAmb } = await supabaseClient.from("ambientes").select("*").order("nome");
   if (errAmb || !ambientes) {
@@ -257,14 +277,11 @@ async function carregarPainelInspetor() {
     let observacao = "";
     let isOcupado = false;
 
-    // Prioridade 1: Marcação manual efetuada pelo Inspetor
     if (mapaOcupacoesInspetor[amb.id]) {
       responsavel = mapaOcupacoesInspetor[amb.id].responsavel_nome;
       observacao = mapaOcupacoesInspetor[amb.id].observacao || "";
       isOcupado = true;
-    } 
-    // Prioridade 2: Reserva Aprovada existente no sistema
-    else if (reservas) {
+    } else if (reservas) {
       const res = reservas.find(r => r.ambiente_id === amb.id);
       if (res) {
         responsavel = `Instrutor ${res.nome_instrutor}`;
@@ -365,6 +382,81 @@ async function carregarAmbientes() {
       opt.innerText = `${a.nome} (${a.segmento} - Cap: ${a.capacidade} lugares)`;
       selectAmb.appendChild(opt);
     });
+  }
+}
+
+/* =========================================================
+   CRUD DE AMBIENTES (COM ATUALIZAÇÃO AUTOMÁTICA DO PAINEL)
+   ========================================================= */
+function carregarTabelaAmbientes() {
+  const tabelaCorpo = document.getElementById("tabela-ambientes-corpo");
+  if (!tabelaCorpo) return;
+
+  tabelaCorpo.innerHTML = "";
+
+  listaAmbientes.forEach(a => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><strong>${a.nome}</strong></td>
+      <td>${a.tipo}</td>
+      <td>${a.segmento}</td>
+      <td>${a.capacidade} lugares</td>
+      <td class="text-center">
+        <button class="btn btn-sm btn-edit" onclick="prepararEdicaoAmbiente('${a.id}')">✏️ Editar</button>
+        <button class="btn btn-sm btn-danger" onclick="excluirAmbiente('${a.id}')">🗑️ Excluir</button>
+      </td>
+    `;
+    tabelaCorpo.appendChild(tr);
+  });
+}
+
+async function salvarAmbiente(e) {
+  e.preventDefault();
+  const id = document.getElementById("amb-id").value;
+  const nome = document.getElementById("amb-nome").value.trim();
+  const tipo = document.getElementById("amb-tipo").value;
+  const segmento = document.getElementById("amb-segmento").value;
+  const capacidade = parseInt(document.getElementById("amb-capacidade").value);
+
+  if (id) {
+    await supabaseClient.from("ambientes").update({ nome, tipo, segmento, capacidade }).eq("id", id);
+  } else {
+    await supabaseClient.from("ambientes").insert([{ nome, tipo, segmento, capacidade }]);
+  }
+
+  limparFormAmbiente();
+  await carregarAmbientes();
+  carregarTabelaAmbientes();
+  await carregarPainelInspetor(); // Atualiza a grade visual do inspetor imediatamente
+}
+
+function prepararEdicaoAmbiente(id) {
+  const a = listaAmbientes.find(item => item.id === id);
+  if (!a) return;
+
+  document.getElementById("amb-id").value = a.id;
+  document.getElementById("amb-nome").value = a.nome;
+  document.getElementById("amb-tipo").value = a.tipo;
+  document.getElementById("amb-segmento").value = a.segmento;
+  document.getElementById("amb-capacidade").value = a.capacidade;
+
+  document.getElementById("titulo-form-ambiente").innerText = "✏️ Editar Ambiente";
+  document.getElementById("btn-cancelar-ambiente").classList.remove("hidden");
+}
+
+function limparFormAmbiente() {
+  document.getElementById("form-ambiente").reset();
+  document.getElementById("amb-id").value = "";
+  document.getElementById("titulo-form-ambiente").innerText = "🏫 Cadastrar / Editar Ambiente";
+  document.getElementById("btn-cancelar-ambiente").classList.add("hidden");
+}
+
+async function excluirAmbiente(id) {
+  if (confirm("Tem certeza que deseja excluir este ambiente?")) {
+    await supabaseClient.from("ambientes").delete().eq("id", id);
+    await carregarAmbientes();
+    carregarTabelaAmbientes();
+    await carregarPainelInspetor(); // Remove o ambiente da grade do inspetor imediatamente
   }
 }
 
@@ -509,79 +601,6 @@ async function alterarStatusReserva(id, novoStatus) {
     alert("Erro ao atualizar status: " + error.message);
   } else {
     carregarSolicitacoesPendentes();
-  }
-}
-
-/* =========================================================
-   CRUD DE AMBIENTES
-   ========================================================= */
-function carregarTabelaAmbientes() {
-  const tabelaCorpo = document.getElementById("tabela-ambientes-corpo");
-  if (!tabelaCorpo) return;
-
-  tabelaCorpo.innerHTML = "";
-
-  listaAmbientes.forEach(a => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td><strong>${a.nome}</strong></td>
-      <td>${a.tipo}</td>
-      <td>${a.segmento}</td>
-      <td>${a.capacidade} lugares</td>
-      <td class="text-center">
-        <button class="btn btn-sm btn-edit" onclick="prepararEdicaoAmbiente('${a.id}')">✏️ Editar</button>
-        <button class="btn btn-sm btn-danger" onclick="excluirAmbiente('${a.id}')">🗑️ Excluir</button>
-      </td>
-    `;
-    tabelaCorpo.appendChild(tr);
-  });
-}
-
-async function salvarAmbiente(e) {
-  e.preventDefault();
-  const id = document.getElementById("amb-id").value;
-  const nome = document.getElementById("amb-nome").value.trim();
-  const tipo = document.getElementById("amb-tipo").value;
-  const segmento = document.getElementById("amb-segmento").value;
-  const capacidade = parseInt(document.getElementById("amb-capacidade").value);
-
-  if (id) {
-    await supabaseClient.from("ambientes").update({ nome, tipo, segmento, capacidade }).eq("id", id);
-  } else {
-    await supabaseClient.from("ambientes").insert([{ nome, tipo, segmento, capacidade }]);
-  }
-
-  limparFormAmbiente();
-  await carregarAmbientes();
-  carregarTabelaAmbientes();
-}
-
-function prepararEdicaoAmbiente(id) {
-  const a = listaAmbientes.find(item => item.id === id);
-  if (!a) return;
-
-  document.getElementById("amb-id").value = a.id;
-  document.getElementById("amb-nome").value = a.nome;
-  document.getElementById("amb-tipo").value = a.tipo;
-  document.getElementById("amb-segmento").value = a.segmento;
-  document.getElementById("amb-capacidade").value = a.capacidade;
-
-  document.getElementById("titulo-form-ambiente").innerText = "✏️ Editar Ambiente";
-  document.getElementById("btn-cancelar-ambiente").classList.remove("hidden");
-}
-
-function limparFormAmbiente() {
-  document.getElementById("form-ambiente").reset();
-  document.getElementById("amb-id").value = "";
-  document.getElementById("titulo-form-ambiente").innerText = "🏫 Cadastrar / Editar Ambiente";
-  document.getElementById("btn-cancelar-ambiente").classList.add("hidden");
-}
-
-async function excluirAmbiente(id) {
-  if (confirm("Tem certeza que deseja excluir este ambiente?")) {
-    await supabaseClient.from("ambientes").delete().eq("id", id);
-    await carregarAmbientes();
-    carregarTabelaAmbientes();
   }
 }
 
