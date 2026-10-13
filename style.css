@@ -277,8 +277,8 @@ th {
   display: inline-block;
 }
 .badge-status.Pendente { background-color: #fff3cd; color: #856404; }
-.badge-status.Aprovada { background-color: #d4edda; color: #155724; }
-.badge-status.Recusada { background-color: #f8d7da; color: #721c24; }
+.badge-status.Aprovada, .badge-status.Aprovado { background-color: #d4edda; color: #155724; }
+.badge-status.Recusada, .badge-status.Recusado { background-color: #f8d7da; color: #721c24; }
 
 /* GRADE DE AMBIENTES ÚNICA SEM ROLAGEM HORIZONTAL */
 .grid-ambientes {
@@ -345,7 +345,7 @@ th {
   color: #777777;
 }
 
-/* MODAL DE OCUPAÇÃO */
+/* MODAL DE OCUPAÇÃO E EDICAO */
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
