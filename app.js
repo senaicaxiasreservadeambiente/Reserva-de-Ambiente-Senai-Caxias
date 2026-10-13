@@ -36,7 +36,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   configurarRealtime();
 });
 
-// ESCUTA EM TEMPO REAL (SINCRONIZAÇÃO AUTOMÁTICA ENTRE TELAS)
+// ESCUTA EM TEMPO REAL
 function configurarRealtime() {
   supabaseClient
     .channel("mudancas-sistema")
@@ -231,11 +231,13 @@ function trocarAba(aba) {
 }
 
 /* =========================================================
-   PAINEL DO INSPETOR (GRADE DE AMBIENTES ORGANIZADA POR SEGMENTOS)
+   PAINEL DO INSPETOR (COLUNAS DE SEGMENTOS NA HORIZONTAL)
    ========================================================= */
 async function carregarPainelInspetor() {
   const container = document.getElementById("grid-ambientes-inspetor");
   if (!container) return;
+
+  container.className = "painel-segmentos-container";
 
   const dataFiltro = document.getElementById("insp-data").value;
   const turnoFiltro = document.getElementById("insp-turno").value;
@@ -289,7 +291,7 @@ async function carregarPainelInspetor() {
     }
   });
 
-  // Ordena as Salas de Aula numericamente (ex: Sala 1, Sala 2 ... Sala 15)
+  // Ordena as Salas de Aula numericamente (1 a 15+)
   salasDeAula.sort((a, b) => {
     const numA = parseInt((a.nome.match(/\d+/) || [999])[0], 10);
     const numB = parseInt((b.nome.match(/\d+/) || [999])[0], 10);
@@ -297,8 +299,8 @@ async function carregarPainelInspetor() {
     return a.nome.localeCompare(b.nome);
   });
 
-  // Função interna para renderizar o bloco de cada segmento
-  const renderizarBlocoSegmento = (titulo, lista) => {
+  // Função interna para renderizar cada coluna de segmento
+  const renderizarColunaSegmento = (titulo, lista) => {
     if (!lista || lista.length === 0) return;
 
     const bloco = document.createElement("div");
@@ -347,16 +349,15 @@ async function carregarPainelInspetor() {
     container.appendChild(bloco);
   };
 
-  // 1º Renderiza o bloco de SALAS DE AULA
-  renderizarBlocoSegmento("🏫 SALAS DE AULA", salasDeAula);
+  // 1ª Coluna: SALAS DE AULA
+  renderizarColunaSegmento("🏫 SALAS DE AULA", salasDeAula);
 
-  // 2º Renderiza os demais SEGMENTOS em Ordem Alfabética
+  // Colunas seguintes: SEGMENTOS em Ordem Alfabética
   const segmentosOrdenados = Object.keys(porSegmento).sort((a, b) => a.localeCompare(b));
 
   segmentosOrdenados.forEach(seg => {
-    // Ordena os ambientes em ordem alfabética dentro do próprio segmento
     porSegmento[seg].sort((a, b) => a.nome.localeCompare(b.nome));
-    renderizarBlocoSegmento(`🔬 SEGMENTO: ${seg.toUpperCase()}`, porSegmento[seg]);
+    renderizarColunaSegmento(`🔬 ${seg.toUpperCase()}`, porSegmento[seg]);
   });
 }
 
