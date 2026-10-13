@@ -10,6 +10,7 @@ body {
   background-color: #f4f6f9;
   color: #333;
   line-height: 1.4;
+  overflow-x: hidden; /* Elimina qualquer barra de rolagem horizontal da página */
 }
 
 .hidden {
@@ -58,7 +59,7 @@ input, select, textarea {
   padding: 0.75rem 0.9rem;
   border: 1px solid #cccccc;
   border-radius: 8px;
-  font-size: 16px; /* Evita zoom no iOS */
+  font-size: 16px; /* Evita zoom em dispositivos móveis */
   outline: none;
   width: 100%;
   background-color: #fff;
@@ -164,7 +165,7 @@ input:focus, select:focus, textarea:focus {
 
 /* MAIN LAYOUT */
 .main-content {
-  max-width: 1280px;
+  max-width: 1200px;
   margin: 1.2rem auto;
   padding: 0 0.8rem;
 }
@@ -280,59 +281,54 @@ th {
 .badge-status.Aprovada { background-color: #d4edda; color: #155724; }
 .badge-status.Recusada { background-color: #f8d7da; color: #721c24; }
 
-/* PAINEL DO INSPETOR (LAYOUT HORIZONTAL DE SEGMENTOS) */
+/* PAINEL DO INSPETOR (DISPOSIÇÃO VERTICAL - SEM SCROLL HORIZONTAL) */
 .painel-segmentos-container {
   display: flex;
-  flex-direction: row;
-  gap: 1.2rem;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding-bottom: 1rem;
-  align-items: flex-start;
-  -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
 }
 
 .segmento-bloco {
-  flex: 0 0 280px; /* Largura fixa por coluna de segmento */
-  min-width: 260px;
-  background-color: #f8f9fa;
+  width: 100%;
+  background-color: #ffffff;
   border: 1px solid #dce1e7;
   border-radius: 10px;
-  padding: 0.9rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  padding: 1rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
 }
 
 .segmento-titulo {
-  font-size: 0.92rem;
+  font-size: 1rem;
   font-weight: bold;
   color: #ffffff;
   background-color: #0056b3;
-  padding: 0.6rem 0.8rem;
+  padding: 0.7rem 1rem;
   border-radius: 6px;
-  margin-bottom: 0.8rem;
+  margin-bottom: 1rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  text-align: center;
-  box-shadow: 0 2px 4px rgba(0,86,179,0.2);
+  text-align: left;
 }
 
+/* GRADE DE CARTOES COM QUEBRA AUTOMÁTICA DE LINHAS */
 .grid-ambientes {
   display: grid;
-  grid-template-columns: repeat(2, 1fr); /* 2 cartões por linha dentro de cada coluna */
-  gap: 0.6rem;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.8rem;
+  width: 100%;
 }
 
 .card-ambiente-box {
-  border-radius: 8px;
-  padding: 0.8rem 0.4rem;
+  border-radius: 10px;
+  padding: 0.9rem 0.5rem;
   text-align: center;
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 95px;
+  min-height: 105px;
   border: 2px solid #0056b3;
   box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
@@ -350,20 +346,20 @@ th {
 .card-ambiente-box.livre {
   background-color: #ffffff;
   color: #495057;
-  border-color: #cccccc;
+  border-color: #0056b3;
 }
 
 .card-ambiente-nome {
-  font-size: 0.92rem;
+  font-size: 1rem;
   font-weight: bold;
   margin-bottom: 0.3rem;
   word-break: break-word;
 }
 
 .card-ambiente-user {
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   font-weight: bold;
-  padding: 0.3rem 0.2rem;
+  padding: 0.35rem 0.2rem;
   border-radius: 6px;
   text-transform: uppercase;
   line-height: 1.2;
@@ -402,7 +398,7 @@ th {
   box-shadow: 0 5px 25px rgba(0,0,0,0.25);
 }
 
-/* RESPONSIVIDADE PARA SMARTPHONES */
+/* RESPONSIVIDADE PARA CELULARES */
 @media (max-width: 600px) {
   .navbar {
     flex-direction: column;
@@ -431,12 +427,12 @@ th {
   }
 
   .main-content {
-    padding: 0 0.5rem;
+    padding: 0 0.4rem;
     margin: 0.8rem auto;
   }
 
   .card {
-    padding: 1rem;
+    padding: 0.9rem;
     border-radius: 8px;
   }
 
@@ -445,9 +441,22 @@ th {
     gap: 0.8rem;
   }
 
-  .segmento-bloco {
-    flex: 0 0 82vw; /* Exibe quase toda a coluna na tela do smartphone deixando a ponta do próximo segmento visível */
-    min-width: 250px;
+  .grid-ambientes {
+    grid-template-columns: repeat(3, 1fr); /* 3 colunas em smartphones para caber bem na vertical */
+    gap: 0.5rem;
+  }
+
+  .card-ambiente-box {
+    padding: 0.6rem 0.3rem;
+    min-height: 95px;
+  }
+
+  .card-ambiente-nome {
+    font-size: 0.88rem;
+  }
+
+  .card-ambiente-user {
+    font-size: 0.7rem;
   }
 
   .filters-row {
