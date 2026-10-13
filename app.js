@@ -158,18 +158,23 @@ async function carregarPerfilEIniciar() {
       perfilUsuario.status = 'Aprovado';
     }
   } else {
+    // Se o perfil não for encontrado na tabela (foi recusado/removido), bloqueia o acesso
     const meta = usuarioLogado.user_metadata || {};
     perfilUsuario = {
       nome: meta.nome || usuarioLogado.email,
       cargo: meta.cargo || "Instrutor",
       segmento: meta.segmento || "Geral",
-      status: 'Aprovado' // Usuários legados sem registro na tabela perfis entram como Aprovados
+      status: 'Recusado'
     };
   }
 
-  // BLOQUEIO APENAS SE FOR EXPLICITAMENTE 'Pendente' OU 'Recusado'
-  if (perfilUsuario.status === 'Pendente' || perfilUsuario.status === 'Recusado') {
-    alert(`Olá, ${perfilUsuario.nome}.\n\nSeu cadastro está AGUARDANDO VALIDAÇÃO do sitema.\n\nAssim que for confirmado, seu acesso será liberado.`);
+  // BLOQUEIO RIGOROSO DE ACESSO
+  if (perfilUsuario.status !== 'Aprovado') {
+    if (perfilUsuario.status === 'Recusado') {
+      alert(`Acesso Negado: O seu cadastro foi recusado ou desativado por um Técnico de Educação.`);
+    } else {
+      alert(`Olá, ${perfilUsuario.nome}.\n\nSeu cadastro está AGUARDANDO VALIDAÇÃO do sistema.\n\nAssim que for confirmado, seu acesso será liberado.`);
+    }
     await supabaseClient.auth.signOut();
     exibirTelaAuth();
     return;
@@ -693,7 +698,7 @@ async function carregarTabelaFuncionarios() {
           <td class="text-center">
             <button class="btn btn-sm btn-success" onclick="validarFuncionarioDireto('${f.id}')">✔️ Validar</button>
             <button class="btn btn-sm btn-edit" onclick="abrirModalEditarFuncionario('${f.id}')">✏️ Alterar Cargo / Dados</button>
-            <button class="btn btn-sm btn-danger" onclick="excluirFuncionario('${f.id}')">❌ Recusar</button>
+            <button class="btn btn-sm btn-danger" onclick="recusarFuncionario('${f.id}')">❌ Recusar</button>
           </td>
         `;
         tabelaPendentes.appendChild(tr);
@@ -787,10 +792,35 @@ async function salvarEValidarFuncionario(e) {
   }
 }
 
+// RECUSA O CADASTRO E BLOQUEIA ACESSO FUTURO
+async function recusarFuncionario(id) {
+  if (confirm("Deseja recusar o cadastro deste funcionário? Ele não terá acesso ao sistema.")) {
+    const { error } = await supabaseClient
+      .from("perfis")
+      .update({ status: 'Recusado' })
+      .eq("id", id);
+
+    if (error) {
+      alert("Erro ao recusar cadastro: " + error.message);
+    } else {
+      carregarTabelaFuncionarios();
+    }
+  }
+}
+
+// DESATIVA/DESVALÍDA UM FUNCIONÁRIO JÁ EXISTENTE
 async function excluirFuncionario(id) {
-  if (confirm("Deseja recusar/remover este funcionário do sistema?")) {
-    await supabaseClient.from("perfis").delete().eq("id", id);
-    carregarTabelaFuncionarios();
+  if (confirm("Deseja remover o acesso deste funcionário? O cadastro será desativado.")) {
+    const { error } = await supabaseClient
+      .from("perfis")
+      .update({ status: 'Recusado' })
+      .eq("id", id);
+
+    if (error) {
+      alert("Erro ao remover funcionário: " + error.message);
+    } else {
+      carregarTabelaFuncionarios();
+    }
   }
 }
 
@@ -799,6 +829,7 @@ function formatarData(dataISO) {
   const [ano, mes, dia] = dataISO.split("-");
   return `${dia}/${mes}/${ano}`;
 }
+
 /* =========================================================
    BLOQUEIO DE INSPEÇÃO E BOTÃO DIREITO (DESATIVADO PARA TESTES)
    ========================================================= */
