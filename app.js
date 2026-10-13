@@ -12,12 +12,17 @@ let usuarioLogado = null;
 let perfilUsuario = null;
 let listaAmbientes = [];
 let listaReservas = [];
+let mapaOcupacoesInspetor = {};
 
 // INICIALIZAÇÃO DA APLICAÇÃO
 document.addEventListener("DOMContentLoaded", async () => {
-  // Limpa o filtro inicial de data para exibir todas as reservas (passadas, presentes e futuras)
-  const filtroData = document.getElementById("filtro-data-reserva");
-  if (filtroData) filtroData.value = "";
+  const hoje = new Date().toISOString().split("T")[0];
+
+  const filtroDataReserva = document.getElementById("filtro-data-reserva");
+  if (filtroDataReserva) filtroDataReserva.value = "";
+
+  const inspData = document.getElementById("insp-data");
+  if (inspData) inspData.value = hoje;
 
   const { data: { session } } = await supabaseClient.auth.getSession();
   if (session) {
@@ -51,7 +56,6 @@ async function handleCadastro(e) {
   const cargo = document.getElementById("cad-cargo").value;
   const senha = document.getElementById("cad-senha").value;
 
-  // Cadastra no Supabase Auth salvando também nos metadados
   const { data, error } = await supabaseClient.auth.signUp({ 
     email, 
     password: senha,
@@ -79,14 +83,13 @@ async function handleCadastro(e) {
   }
 }
 
-// LOGIN DE FUNCIONÁRIO (COM LIMPEZA DE SESSÃO ANTERIOR)
+// LOGIN DE FUNCIONÁRIO
 async function handleLogin(e) {
   e.preventDefault();
   const email = document.getElementById("login-email").value.trim();
   const senha = document.getElementById("login-senha").value;
 
   try {
-    // Garante o encerramento de qualquer sessão pendente no navegador antes de autenticar
     await supabaseClient.auth.signOut();
 
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: senha });
@@ -115,7 +118,6 @@ async function carregarPerfilEIniciar() {
   if (data) {
     perfilUsuario = data;
   } else {
-    // Caso a tabela falhe, recupera os dados salvos nos metadados da conta
     const meta = usuarioLogado.user_metadata || {};
     perfilUsuario = {
       nome: meta.nome || usuarioLogado.email,
@@ -131,19 +133,20 @@ async function carregarPerfilEIniciar() {
   const badge = document.getElementById("badge-perfil");
   badge.innerText = perfilUsuario.cargo;
 
-  // 1. Reset de segurança: esconde todas as abas antes de checar as permissões do novo usuário
+  // Reset de abas
+  document.getElementById("btn-tab-inspetor")?.classList.add("hidden");
   document.getElementById("btn-tab-solicitar")?.classList.add("hidden");
   document.getElementById("btn-tab-validar")?.classList.add("hidden");
   document.getElementById("btn-tab-ambientes")?.classList.add("hidden");
   document.getElementById("btn-tab-funcionarios")?.classList.add("hidden");
 
-  // 2. AJUSTAR VISIBILIDADE DAS ABAS COM BASE NAS PERMISSÕES DO CARGO
   const cargo = perfilUsuario.cargo;
-  const eTecnicoOuCoord = (
-    cargo === "Tecnico de Educacao" || 
-    cargo === "Técnico de Educação" || 
-    cargo === "Coordenador"
-  );
+  const eTecnicoOuCoord = (cargo === "Tecnico de Educacao" || cargo === "Técnico de Educação" || cargo === "Coordenador");
+  const eInspetor = (cargo === "Inspetor" || cargo === "Inspetor de Alunos");
+
+  if (eInspetor || eTecnicoOuCoord) {
+    document.getElementById("btn-tab-inspetor")?.classList.remove("hidden");
+  }
 
   if (cargo === "Instrutor" || eTecnicoOuCoord) {
     document.getElementById("btn-tab-solicitar")?.classList.remove("hidden");
@@ -156,10 +159,16 @@ async function carregarPerfilEIniciar() {
   }
 
   await carregarAmbientes();
-  await carregarReservas();
+
+  // Direciona o Inspetor para a Grade Visual imediatamente ao entrar
+  if (eInspetor) {
+    trocarAba("inspetor");
+  } else {
+    await carregarReservas();
+  }
 }
 
-// LOGOUT (COM LIMPEZA COMPLETA DE CACHE DE SESSÃO)
+// LOGOUT
 async function handleLogout() {
   await supabaseClient.auth.signOut();
   localStorage.clear();
@@ -179,7 +188,10 @@ function trocarAba(aba) {
 
   if (window.event && window.event.target) window.event.target.classList.add("active");
 
-  if (aba === "reservas") {
+  if (aba === "inspetor") {
+    document.getElementById("aba-inspetor").classList.remove("hidden");
+    carregarPainelInspetor();
+  } else if (aba === "reservas") {
     document.getElementById("aba-reservas").classList.remove("hidden");
     carregarReservas();
   } else if (aba === "solicitar") {
@@ -197,6 +209,145 @@ function trocarAba(aba) {
 }
 
 /* =========================================================
+   PAINEL DO INSPETOR (GRADE DE AMBIENTES EM TEMPO REAL)
+   ========================================================= */
+async function carregarPainelInspetor() {
+  const container = document.getElementById("grid-ambientes-inspetor");
+  if (!container) return;
+
+  const dataFiltro = document.getElementById("insp-data").value;
+  const turnoFiltro = document.getElementById("insp-turno").value;
+
+  if (!dataFiltro) return;
+
+  container.innerHTML = '<p class="text-center">Atualizando grade de ambientes...</p>';
+
+  // 1. Busca todos os ambientes cadastrados
+  const { data: ambientes, error: errAmb } = await supabaseClient.from("ambientes").select("*").order("nome");
+  if (errAmb || !ambientes) {
+    container.innerHTML = '<p class="text-center">Erro ao carregar lista de ambientes.</p>';
+    return;
+  }
+
+  // 2. Busca reservas aprovadas para a data e turno selecionados
+  const { data: reservas } = await supabaseClient
+    .from("reservas")
+    .select("*")
+    .eq("status", "Aprovada")
+    .lte("data_inicio", dataFiltro)
+    .gte("data_fim", dataFiltro)
+    .eq("turno", turnoFiltro);
+
+  // 3. Busca marcações manuais dos inspetores para a data e turno
+  const { data: ocupacoes } = await supabaseClient
+    .from("ocupacoes_ambientes")
+    .select("*")
+    .eq("data", dataFiltro)
+    .eq("turno", turnoFiltro);
+
+  mapaOcupacoesInspetor = {};
+  if (ocupacoes) {
+    ocupacoes.forEach(o => { mapaOcupacoesInspetor[o.ambiente_id] = o; });
+  }
+
+  container.innerHTML = "";
+
+  ambientes.forEach(amb => {
+    let responsavel = null;
+    let observacao = "";
+    let isOcupado = false;
+
+    // Prioridade 1: Marcação manual efetuada pelo Inspetor
+    if (mapaOcupacoesInspetor[amb.id]) {
+      responsavel = mapaOcupacoesInspetor[amb.id].responsavel_nome;
+      observacao = mapaOcupacoesInspetor[amb.id].observacao || "";
+      isOcupado = true;
+    } 
+    // Prioridade 2: Reserva Aprovada existente no sistema
+    else if (reservas) {
+      const res = reservas.find(r => r.ambiente_id === amb.id);
+      if (res) {
+        responsavel = `Instrutor ${res.nome_instrutor}`;
+        isOcupado = true;
+      }
+    }
+
+    const card = document.createElement("div");
+    card.className = `card-ambiente-box ${isOcupado ? 'ocupado' : 'livre'}`;
+    card.onclick = () => abrirModalOcupacao(amb.id, amb.nome, responsavel, observacao);
+
+    card.innerHTML = `
+      <div class="card-ambiente-nome">${amb.nome}</div>
+      <div class="card-ambiente-user">
+        ${isOcupado ? `👤 ${responsavel}` : 'DISPONÍVEL'}
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
+}
+
+function abrirModalOcupacao(ambienteId, ambienteNome, responsavelAtual, obsAtual) {
+  document.getElementById("modal-ambiente-id").value = ambienteId;
+  document.getElementById("modal-titulo-ambiente").innerText = `Ambiente: ${ambienteNome}`;
+  document.getElementById("modal-responsavel").value = responsavelAtual ? responsavelAtual.replace("Instrutor ", "") : "";
+  document.getElementById("modal-observacao").value = obsAtual || "";
+  document.getElementById("modal-ocupacao").classList.remove("hidden");
+}
+
+function fecharModalOcupacao() {
+  document.getElementById("modal-ocupacao").classList.add("hidden");
+  document.getElementById("form-modal-ocupacao").reset();
+}
+
+async function salvarOcupacaoInspetor(e) {
+  e.preventDefault();
+  const ambienteId = document.getElementById("modal-ambiente-id").value;
+  const responsavel = document.getElementById("modal-responsavel").value.trim();
+  const obs = document.getElementById("modal-observacao").value.trim();
+  const dataFiltro = document.getElementById("insp-data").value;
+  const turnoFiltro = document.getElementById("insp-turno").value;
+
+  const payload = {
+    ambiente_id: ambienteId,
+    data: dataFiltro,
+    turno: turnoFiltro,
+    responsavel_nome: `Instrutor ${responsavel}`,
+    observacao: obs,
+    registrado_por: perfilUsuario ? perfilUsuario.nome : "Inspetor"
+  };
+
+  const { error } = await supabaseClient.from("ocupacoes_ambientes").upsert(payload, {
+    onConflict: "ambiente_id,data,turno"
+  });
+
+  if (error) {
+    alert("Erro ao salvar ocupação: " + error.message);
+  } else {
+    fecharModalOcupacao();
+    await carregarPainelInspetor();
+  }
+}
+
+async function liberarAmbienteOcupado() {
+  const ambienteId = document.getElementById("modal-ambiente-id").value;
+  const dataFiltro = document.getElementById("insp-data").value;
+  const turnoFiltro = document.getElementById("insp-turno").value;
+
+  if (confirm("Deseja liberar este ambiente e remover o registro?")) {
+    await supabaseClient
+      .from("ocupacoes_ambientes")
+      .delete()
+      .eq("ambiente_id", ambienteId)
+      .eq("data", dataFiltro)
+      .eq("turno", turnoFiltro);
+
+    fecharModalOcupacao();
+    await carregarPainelInspetor();
+  }
+}
+
+/* =========================================================
    MÓDULO DE AMBIENTES (LISTAGEM E SELEÇÃO)
    ========================================================= */
 async function carregarAmbientes() {
@@ -205,7 +356,6 @@ async function carregarAmbientes() {
 
   listaAmbientes = data || [];
   
-  // Preencher dropdown da Solicitação de Reserva
   const selectAmb = document.getElementById("res-ambiente");
   if (selectAmb) {
     selectAmb.innerHTML = '<option value="">Selecione um ambiente...</option>';
@@ -234,7 +384,6 @@ async function carregarReservas() {
     query = query.or(`segmento_ambiente.eq.${segmento},segmento_instrutor.eq.${segmento}`);
   }
 
-  // Aplica o filtro de data apenas se o usuário tiver digitado/selecionado uma data
   if (dataFiltro) {
     query = query.lte("data_inicio", dataFiltro).gte("data_fim", dataFiltro);
   }
@@ -264,7 +413,7 @@ async function carregarReservas() {
   });
 }
 
-// SOLICITAR RESERVA (INSTRUTORES E TÉCNICOS)
+// SOLICITAR RESERVA
 async function solicitarReserva(e) {
   e.preventDefault();
   const ambienteId = document.getElementById("res-ambiente").value;
@@ -316,7 +465,7 @@ async function solicitarReserva(e) {
   }
 }
 
-// CARREGAR SOLICITAÇÕES PENDENTES PARA ADMINISTRAÇÃO
+// CARREGAR SOLICITAÇÕES PENDENTES
 async function carregarSolicitacoesPendentes() {
   const { data, error } = await supabaseClient
     .from("reservas")
@@ -364,7 +513,7 @@ async function alterarStatusReserva(id, novoStatus) {
 }
 
 /* =========================================================
-   CRUD DE AMBIENTES (TÉCNICOS E COORDENADORES)
+   CRUD DE AMBIENTES
    ========================================================= */
 function carregarTabelaAmbientes() {
   const tabelaCorpo = document.getElementById("tabela-ambientes-corpo");
@@ -397,7 +546,7 @@ async function salvarAmbiente(e) {
   const capacidade = parseInt(document.getElementById("amb-capacidade").value);
 
   if (id) {
-    await supabaseClient.from("ambientes").update({ nome, tipo, segmento, capacity: capacidade }).eq("id", id);
+    await supabaseClient.from("ambientes").update({ nome, tipo, segmento, capacidade }).eq("id", id);
   } else {
     await supabaseClient.from("ambientes").insert([{ nome, tipo, segmento, capacidade }]);
   }
@@ -437,7 +586,7 @@ async function excluirAmbiente(id) {
 }
 
 /* =========================================================
-   CRUD DE FUNCIONÁRIOS (TÉCNICOS E COORDENADORES)
+   CRUD DE FUNCIONÁRIOS
    ========================================================= */
 async function carregarTabelaFuncionarios() {
   const { data, error } = await supabaseClient.from("perfis").select("*").order("nome");
@@ -476,7 +625,6 @@ function formatarData(dataISO) {
   const [ano, mes, dia] = dataISO.split("-");
   return `${dia}/${mes}/${ano}`;
 }
-
 /* =========================================================
    BLOQUEIO DE INSPEÇÃO E BOTÃO DIREITO (DESATIVADO PARA TESTES)
    ========================================================= */
