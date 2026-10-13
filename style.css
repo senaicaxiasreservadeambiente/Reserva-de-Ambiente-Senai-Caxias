@@ -10,7 +10,7 @@ body {
   background-color: #f4f6f9;
   color: #333;
   line-height: 1.4;
-  overflow-x: hidden; /* Elimina qualquer barra de rolagem horizontal da página */
+  overflow-x: hidden;
 }
 
 .hidden {
@@ -59,7 +59,7 @@ input, select, textarea {
   padding: 0.75rem 0.9rem;
   border: 1px solid #cccccc;
   border-radius: 8px;
-  font-size: 16px; /* Evita zoom em dispositivos móveis */
+  font-size: 16px;
   outline: none;
   width: 100%;
   background-color: #fff;
@@ -230,7 +230,6 @@ input:focus, select:focus, textarea:focus {
   display: flex;
   gap: 0.8rem;
   flex-wrap: wrap;
-  width: 100%;
 }
 
 .filter-item {
@@ -281,42 +280,13 @@ th {
 .badge-status.Aprovada { background-color: #d4edda; color: #155724; }
 .badge-status.Recusada { background-color: #f8d7da; color: #721c24; }
 
-/* PAINEL DO INSPETOR (DISPOSIÇÃO VERTICAL - SEM SCROLL HORIZONTAL) */
-.painel-segmentos-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  width: 100%;
-}
-
-.segmento-bloco {
-  width: 100%;
-  background-color: #ffffff;
-  border: 1px solid #dce1e7;
-  border-radius: 10px;
-  padding: 1rem;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-}
-
-.segmento-titulo {
-  font-size: 1rem;
-  font-weight: bold;
-  color: #ffffff;
-  background-color: #0056b3;
-  padding: 0.7rem 1rem;
-  border-radius: 6px;
-  margin-bottom: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  text-align: left;
-}
-
-/* GRADE DE CARTOES COM QUEBRA AUTOMÁTICA DE LINHAS */
+/* GRADE DE AMBIENTES ÚNICA SEM ROLAGEM HORIZONTAL */
 .grid-ambientes {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   gap: 0.8rem;
   width: 100%;
+  margin-top: 1rem;
 }
 
 .card-ambiente-box {
@@ -442,7 +412,7 @@ th {
   }
 
   .grid-ambientes {
-    grid-template-columns: repeat(3, 1fr); /* 3 colunas em smartphones para caber bem na vertical */
+    grid-template-columns: repeat(3, 1fr);
     gap: 0.5rem;
   }
 
