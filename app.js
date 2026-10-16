@@ -151,26 +151,28 @@ async function carregarPerfilEIniciar() {
     .eq("id", usuarioLogado.id)
     .maybeSingle();
 
-  // SE NÃO HOUVER REGISTRO NA TABELA PERFIS (EX: FOI RECUSADO/DELETADO), BLOQUEIA O ACESSO
-  if (!data) {
-    alert("Acesso Negado: Cadastro não encontrado ou foi recusado pelo sistema.");
-    await supabaseClient.auth.signOut();
-    exibirTelaAuth();
-    return;
+  if (data) {
+    perfilUsuario = data;
+    if (!perfilUsuario.status) {
+      perfilUsuario.status = 'Aprovado';
+    }
+  } else {
+    const meta = usuarioLogado.user_metadata || {};
+    perfilUsuario = {
+      nome: meta.nome || usuarioLogado.email,
+      cargo: meta.cargo || "Instrutor",
+      segmento: meta.segmento || "Geral",
+      status: 'Recusado'
+    };
   }
 
-  perfilUsuario = data;
-
-  // BLOQUEIO SE ESTIVER PENDENTE OU RECUSADO
-  if (perfilUsuario.status === 'Pendente') {
-    alert(`Olá, ${perfilUsuario.nome}.\n\nSeu cadastro está AGUARDANDO VALIDAÇÃO do sistema.\n\nAssim que for confirmado, seu acesso será liberado.`);
-    await supabaseClient.auth.signOut();
-    exibirTelaAuth();
-    return;
-  }
-
-  if (perfilUsuario.status === 'Recusado') {
-    alert("Acesso Negado: O seu cadastro foi recusado por um Técnico de Educação.");
+  // BLOQUEIO RIGOROSO DE ACESSO
+  if (perfilUsuario.status !== 'Aprovado') {
+    if (perfilUsuario.status === 'Recusado') {
+      alert(`Acesso Negado: O seu cadastro foi recusado ou desativado por um Técnico de Educação.`);
+    } else {
+      alert(`Olá, ${perfilUsuario.nome}.\n\nSeu cadastro está AGUARDANDO VALIDAÇÃO do sistema.\n\nAssim que for confirmado, seu acesso será liberado.`);
+    }
     await supabaseClient.auth.signOut();
     exibirTelaAuth();
     return;
@@ -788,12 +790,12 @@ async function salvarEValidarFuncionario(e) {
   }
 }
 
-// RECUSA O CADASTRO E DELETA O REGISTRO DO BANCO
+// RECUSA O CADASTRO MANTENDO O HISTÓRICO DE BANCO SEM ERRO DE FOREIGN KEY
 async function recusarFuncionario(id) {
-  if (confirm("Deseja recusar este cadastro? O registro será excluído e o acesso bloqueado.")) {
+  if (confirm("Deseja recusar este cadastro? O acesso será bloqueado.")) {
     const { error } = await supabaseClient
       .from("perfis")
-      .delete()
+      .update({ status: 'Recusado' })
       .eq("id", id);
 
     if (error) {
@@ -804,12 +806,12 @@ async function recusarFuncionario(id) {
   }
 }
 
-// EXCLUI/REMOVE UM FUNCIONÁRIO DO BANCO DE DADOS
+// DESATIVA/REMOVE O FUNCIONÁRIO MANTENDO INTEGRIDADE DAS RESERVAS
 async function excluirFuncionario(id) {
-  if (confirm("Deseja remover este funcionário? O registro será excluído do sistema.")) {
+  if (confirm("Deseja remover este funcionário? O cadastro será desativado e o acesso bloqueado.")) {
     const { error } = await supabaseClient
       .from("perfis")
-      .delete()
+      .update({ status: 'Recusado' })
       .eq("id", id);
 
     if (error) {
