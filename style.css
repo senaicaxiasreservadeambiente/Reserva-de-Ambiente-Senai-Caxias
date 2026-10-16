@@ -291,6 +291,7 @@ th {
 
 .card-ambiente-box {
   border-radius: 10px;
+  width: 140px;
   padding: 0.9rem 0.5rem;
   text-align: center;
   cursor: pointer;
