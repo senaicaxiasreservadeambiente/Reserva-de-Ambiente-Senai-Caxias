@@ -489,6 +489,13 @@ function prepararEdicaoAmbiente(id) {
 
   document.getElementById("titulo-form-ambiente").innerText = "✏️ Editar Ambiente";
   document.getElementById("btn-cancelar-ambiente").classList.remove("hidden");
+
+  // Rola suavemente até o campo e posiciona o cursor nele
+  const campoNome = document.getElementById("amb-nome");
+  if (campoNome) {
+    campoNome.scrollIntoView({ behavior: "smooth", block: "center" });
+    campoNome.focus();
+  }
 }
 
 function limparFormAmbiente() {
